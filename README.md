@@ -1,3 +1,5 @@
+# Project 1 - team Karol Chądzyńki and Wojciech Mierzejek
+
 # Geometric Fisher Model — Evolutionary Simulation Framework
 
 Fisher's Geometric Model (FGM) is one of the most influential theoretical
