@@ -1,6 +1,7 @@
 ---
 name: New Item
 about: Suggest a New Item
+title: "[R] "
 ---
 
 # [TITLE]
