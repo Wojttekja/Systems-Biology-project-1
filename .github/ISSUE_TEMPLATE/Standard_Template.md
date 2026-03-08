@@ -1,6 +1,6 @@
 ---
-name: Item Title
-description: Suggest a New Item
+name: New Item
+about: Suggest a New Item
 ---
 
 # [TITLE]
