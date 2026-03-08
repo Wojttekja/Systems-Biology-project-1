@@ -1,0 +1,67 @@
+name: "New [R] Item for Action Plan."
+description: "Suggest a New Repository Item. [R] stands for Repository."
+title: "[R] "
+body:
+
+  - type: textarea
+    id: title
+    attributes:
+      label: "Short Explanation"
+      description: "Put Here Item Title (without [R] and starting by #)"
+      placeholder: |
+        #
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+
+  - type: textarea
+    id: short_desc
+    attributes:
+      label: "Short Explanation"
+      description: Explain shortly in 1 or 2 sentences your item.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+
+  - type: textarea
+    id: mid_desc
+    attributes:
+      label: "Mid Explanation"
+      description: Explain without details what is your item doing, what is it purpouse.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+
+  - type: textarea
+    id: long_desc
+    attributes:
+      label: "Long Explanation"
+      description: Explain everything which is needed, you can use implementation code fragments and math equations if needed. This section can be left as [TODO or NoNeed]
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        
+  - type: textarea
+    id: additionial_desc
+    attributes:
+      label: "Additional Descirption"
+      description: Explain used labels and provide neccesary information (i.e. about connection to the other items)
+    validations:
+      required: true
+
