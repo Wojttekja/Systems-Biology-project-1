@@ -5,3 +5,13 @@
 - Wojciech Mierzejek
 
 ---
+
+## How to run model?
+
+Just enter into the terminal:
+
+```
+python -m main
+```
+
+---

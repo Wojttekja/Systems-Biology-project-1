@@ -1,7 +1,7 @@
 # population.py
 
 import numpy as np
-from individual import Individual
+from .individual import Individual
 
 class Population:
     """
