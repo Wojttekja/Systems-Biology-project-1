@@ -16,13 +16,13 @@ import os
 import numpy as np
 
 import config
-from environment import LinearShiftEnvironment
-from population import Population
-from mutation import IsotropicMutation
-from selection import TwoStageSelection
-from reproduction import AsexualReproduction
-from visualization import plot_population, plot_frame, plot_stats
-from stats import SimulationStats
+from strategies.environment import LinearShiftEnvironment
+from run_elements.population import Population
+from strategies.mutation import IsotropicMutation
+from strategies.selection import TwoStageSelection
+from strategies.reproduction import AsexualReproduction
+from run_visualization.visualization import plot_population, plot_frame, plot_stats
+from stats_tracking.stats import SimulationStats
 
 
 # ---------------------------------------------------------------------------

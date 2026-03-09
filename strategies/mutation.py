@@ -1,7 +1,7 @@
 # mutation.py
 
 import numpy as np
-from strategies import MutationStrategy
+from .strategies import MutationStrategy
 
 
 class IsotropicMutation(MutationStrategy):
