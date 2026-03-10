@@ -2,7 +2,7 @@
 
 import copy
 import numpy as np
-from strategies import ReproductionStrategy
+from .strategies import ReproductionStrategy
 
 
 class AsexualReproduction(ReproductionStrategy):

@@ -75,7 +75,7 @@ class SimulationStats:
     def record(self, generation: int, population, alpha: np.ndarray,
                sigma: float, reproduction_strategy=None) -> None:
         """Rejestruje stan populacji po kroku reprodukcji, przed zmianą środowiska."""
-        from selection import compute_fitnesses
+        from strategies.selection import compute_fitnesses
 
         individuals = population.get_individuals()
         if not individuals:
