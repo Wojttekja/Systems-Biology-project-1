@@ -26,4 +26,22 @@ This means that if @Karolcha100 wants to work with #8 He needs to create New Bra
 
 ## Long Explanation
 
-[TODO or NoNeed]
+Following **Mid Explanation** correct form of pull request should look like that:
+
+```
+## Item under which it was developed`
+- [Item Reference]
+
+---
+
+## What was done?
+
+1. [Description]
+2. [Description]
+...
+
+## Future Work
+
+[Future Work Description or "[TODO or NoNeed]"]
+
+```
