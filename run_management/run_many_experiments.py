@@ -36,6 +36,9 @@ import glob
 import sys
 from pathlib import Path
 
+# Needed for allowing imports from other subdirectories
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+
 EXPERIMENTS_DIR = Path("experiments")
 
 

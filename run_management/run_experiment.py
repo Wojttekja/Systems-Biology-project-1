@@ -52,6 +52,10 @@ from pathlib import Path
 
 import numpy as np
 
+# Needed for allowing imports from other subdirectories
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+
+
 
 # ---------------------------------------------------------------------------
 # Worker — must be a top-level function so multiprocessing can pickle it.
