@@ -5,6 +5,12 @@ from .strategies import SelectionStrategy
 
 
 # ---------------------------------------------------------------------------
+# Typing Import
+# ---------------------------------------------------------------------------
+
+from ..run_elements.individual import Individual
+
+# ---------------------------------------------------------------------------
 # Funkcje pomocnicze (używane też w stats.py)
 # ---------------------------------------------------------------------------
 
@@ -22,7 +28,7 @@ def fitness_function(phenotype: np.ndarray, alpha: np.ndarray, sigma: float) -> 
     return float(np.exp(-np.dot(diff, diff) / (2 * sigma ** 2)))
 
 
-def compute_fitnesses(individuals: list, alpha: np.ndarray, sigma: float) -> np.ndarray:
+def compute_fitnesses(individuals: list[Individual], alpha: np.ndarray, sigma: float) -> np.ndarray:
     """Oblicza fitness dla całej listy osobników. Zwraca tablicę numpy (N,)."""
     return np.array([fitness_function(ind.get_phenotype(), alpha, sigma)
                      for ind in individuals])
@@ -43,7 +49,7 @@ class ThresholdSelection(SelectionStrategy):
         self.sigma = sigma
         self.threshold = threshold
 
-    def select(self, individuals: list, alpha: np.ndarray) -> list:
+    def select(self, individuals: list[Individual], alpha: np.ndarray) -> list[Individual]:
         return [ind for ind in individuals
                 if fitness_function(ind.get_phenotype(), alpha, self.sigma) >= self.threshold]
 
@@ -59,7 +65,7 @@ class ProportionalSelection(SelectionStrategy):
         self.sigma = sigma
         self.N = N
 
-    def select(self, individuals: list, alpha: np.ndarray) -> list:
+    def select(self, individuals: list[Individual], alpha: np.ndarray) -> list[Individual]:
         fitnesses = compute_fitnesses(individuals, alpha, self.sigma)
         total = fitnesses.sum()
         probs = fitnesses / total if total > 0 else np.ones(len(individuals)) / len(individuals)
@@ -82,7 +88,7 @@ class TwoStageSelection(SelectionStrategy):
         self.threshold = threshold
         self.N = N
 
-    def select(self, individuals: list, alpha: np.ndarray) -> list:
+    def select(self, individuals: list[Individual], alpha: np.ndarray) -> list[Individual]:
         # Etap 1: selekcja progowa
         survivors = [ind for ind in individuals
                      if fitness_function(ind.get_phenotype(), alpha, self.sigma) >= self.threshold]
