@@ -9,18 +9,26 @@ inspect, and extend without modifying the core engine.
 
 ---
 
+## 📚 Documentation
+
+| Guide | Contents |
+|---|---|
+| **[Mathematical background](mathematical_background.md)** | Full formal specification — state spaces, fitness function, all four operators with probability distributions, statistics, Markov chain formulation, references |
+| **[Running experiments](running-experiments.md)** | Config file format, `run_experiment.py`, `run_many_experiments.py`, batch options, loading results in Python |
+| **[Interactive viewer](viewer.md)** | All four Streamlit pages — Overview, Single run, Compare, Parameter sweep, on-demand GIF generation |
+
+---
+
 ## The model
 
 Every individual carries a phenotype vector **p** ∈ ℝⁿ. The environment
 defines an optimal phenotype **α**(t) at each generation. Fitness is a
 Gaussian function of phenotypic distance from that optimum:
 
-```
-φ(p, α) = exp( −‖p − α‖² / 2σ² )
-```
+$$\varphi(\mathbf{p}, \boldsymbol{\alpha}) = \exp\!\left(-\frac{\|\mathbf{p} - \boldsymbol{\alpha}\|^2}{2\sigma^2}\right)$$
 
-A perfect match gives φ = 1; fitness decays exponentially with distance. The
-width σ controls how strict the environment is — smaller σ means only
+A perfect match gives φ = 1; fitness decays exponentially with distance.
+The width σ controls how strict the environment is — smaller σ means only
 near-perfect phenotypes survive.
 
 ### Baseline scenario — "global warming"
@@ -28,13 +36,11 @@ near-perfect phenotypes survive.
 The optimum drifts steadily in a fixed direction with small stochastic
 fluctuations:
 
-```
-α(t+1) = α(t) + N(c, δ²I)
-```
+$$\boldsymbol{\alpha}(t+1) = \boldsymbol{\alpha}(t) + \mathcal{N}(\mathbf{c},\, \delta^2 \mathbf{I})$$
 
 where **c** is the mean drift per generation and δ adds noise. The population
-must continuously adapt or go extinct. Above a critical drift speed ‖c‖, no
-population can keep up — this *critical drift threshold* is one of the key
+must continuously adapt or go extinct. Above a critical drift speed ‖**c**‖
+no population can keep up — this *critical drift threshold* is one of the key
 quantities the model predicts.
 
 ### The evolutionary loop
@@ -43,41 +49,22 @@ Each generation runs four steps in order:
 
 | Step | Operation | Implementation |
 |------|-----------|----------------|
-| 1 | **Mutation** — each phenotype is perturbed: trait *i* shifts by N(0, ξ²) with probability μ_c; the whole individual mutates with probability μ | `IsotropicMutation` |
-| 2 | **Selection** — individuals with fitness below a threshold are removed; survivors are then re-sampled proportionally to fitness up to N | `TwoStageSelection` |
-| 3 | **Reproduction** — survivors are drawn with replacement to restore population size N; each chosen individual produces one clone | `AsexualReproduction` |
-| 4 | **Environment update** — α shifts by c + N(0, δ²I) | `LinearShiftEnvironment` |
+| 1 | **Mutation** — each trait *i* shifts by N(0, ξ²) with probability μ_c; whole individual mutates with probability μ | `IsotropicMutation` |
+| 2 | **Selection** — individuals below a fitness threshold are removed; survivors are resampled proportionally to fitness up to N | `TwoStageSelection` |
+| 3 | **Reproduction** — survivors are drawn with replacement to restore population size N | `AsexualReproduction` |
+| 4 | **Environment update** — α shifts by **c** + N(0, δ²**I**) | `LinearShiftEnvironment` |
 
-> Mutation happens **before** selection, so it creates variation that
-> selection can act on within the same generation — matching the standard
-> FGM formulation.
+> Mutation happens **before** selection, so new variation is exposed to
+> selection within the same generation — matching the standard FGM formulation.
 
 ### Fisher's dimensionality effect
 
 A key prediction of FGM is that adaptation becomes harder as n grows. In
-high-dimensional spaces, almost any random mutation is maladaptive regardless
-of the current distance from the optimum, because most directions in ℝⁿ move
-the phenotype *away* from it. This is why the mutation step size ξ must be
-tuned carefully: too large and all mutations are harmful; too small and the
-population cannot keep pace with the moving optimum.
-
----
-
-## Repository structure
-
-| File | Role |
-|------|------|
-| `config.py` | All simulation parameters — **start here** |
-| `strategies.py` | Abstract base classes defining the four extension interfaces |
-| `main.py` | `run_simulation()` loop and GIF assembly |
-| `individual.py` | `Individual` — holds a single phenotype vector |
-| `population.py` | `Population` — container with initialisation logic |
-| `mutation.py` | `IsotropicMutation` |
-| `selection.py` | `TwoStageSelection`, `ThresholdSelection`, `ProportionalSelection` |
-| `reproduction.py` | `AsexualReproduction` |
-| `environment.py` | `LinearShiftEnvironment` |
-| `stats.py` | `SimulationStats` — per-generation metrics, numpy array properties |
-| `visualization.py` | GIF frame generation and summary plots |
+high-dimensional spaces almost any random mutation is maladaptive, because
+most directions in ℝⁿ move the phenotype *away* from the optimum. This is
+why the mutation step size ξ must be tuned carefully: too large and all
+mutations are harmful; too small and the population cannot keep pace with
+the moving optimum.
 
 ---
 
@@ -117,10 +104,34 @@ next position of the optimum.*
 | `delta` | 0.01 | Stochastic noise added to drift |
 | `threshold` | 0.01 | Minimum fitness for survival (stage 1 of selection) |
 | `init_scale` | 0.1 | Spread of initial phenotypes around α₀ |
-| `seed` | 42 | RNG seed (`None` = new random result each run) |
+| `seed` | 42 | RNG seed (`None` = different result each run) |
 
 > `alpha0` and `c` are derived from `n` automatically — changing `n` is
-> safe, no manual vector resizing needed.
+> safe; no manual vector resizing needed.
+
+---
+
+## Repository structure
+
+| File / directory | Role |
+|------------------|------|
+| `config.py` | All simulation parameters — **start here** |
+| `strategies.py` | Abstract base classes for the four extension interfaces |
+| `main.py` | `run_simulation()` loop and GIF assembly |
+| `individual.py` | `Individual` — single phenotype vector |
+| `population.py` | `Population` — container with initialisation logic |
+| `mutation.py` | `IsotropicMutation` |
+| `selection.py` | `TwoStageSelection`, `ThresholdSelection`, `ProportionalSelection` |
+| `reproduction.py` | `AsexualReproduction` |
+| `environment.py` | `LinearShiftEnvironment` |
+| `stats.py` | `SimulationStats` — per-generation metrics, numpy array properties |
+| `visualization.py` | GIF frame generation and summary plots |
+| `run_experiment.py` | Single-experiment parallel runner |
+| `run_many_experiments.py` | Batch runner — directories, globs, prefixes |
+| `viewer.py` | Streamlit interactive explorer |
+| `experiments/` | JSON experiment configs (one file = one reproducible condition) |
+| `results/` | Generated output — **not committed**, lives only locally |
+| `docs/` | Detailed documentation (see links at the top) |
 
 ---
 
@@ -128,7 +139,7 @@ next position of the optimum.*
 
 All four evolutionary steps are **pluggable**. To add a new mechanism:
 
-1. **Subclass** the appropriate abstract class from `strategies.py`:
+1. **Subclass** the appropriate ABC from `strategies.py`:
    `MutationStrategy`, `SelectionStrategy`, `ReproductionStrategy`, or
    `EnvironmentDynamics`
 2. **Implement** the required method(s) — Python raises `TypeError`
@@ -142,7 +153,7 @@ Nothing else needs to change. Each extension lives in its own file.
 Write into the `extra` dict on each `GenerationRecord`, then read it back:
 
 ```python
-# write during your simulation (e.g. inside a SimulationStats subclass):
+# inside your simulation (e.g. in a SimulationStats subclass):
 stats.records[-1].extra['my_metric'] = some_value
 
 # read back as a numpy time series:
@@ -151,21 +162,3 @@ series = np.array([r.extra.get('my_metric', np.nan) for r in stats.records])
 
 For a cleaner solution, subclass `SimulationStats` and override `record()`.
 The docstring in `stats.py` shows the exact pattern.
-
----
-
-## What the simulation produces
-
-The **GIF** (`simulation.gif`) shows three panels per generation:
-- *Left* — phenotype cloud (dimensions 1 and 2) overlaid on a Gaussian
-  fitness aura, with a fading trail and forecast arrow showing the moving
-  optimum; individuals coloured by their actual n-dimensional fitness
-- *Centre* — mean fitness and distance from optimum over time
-  (fixed x-axis spanning all generations for stable animation)
-- *Right* — phenotypic variance (proxy for genetic diversity) and
-  per-generation reproduction statistics
-
-The **summary plot** (`plot_stats`) shows six panels: the three above plus,
-when reproduction data is available, the number of "evolutionary winners"
-(individuals with ≥ 1 offspring), the median offspring count among
-reproducing individuals, and the maximum offspring count per generation.

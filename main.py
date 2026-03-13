@@ -21,13 +21,14 @@ from run_elements.population import Population
 from strategies.mutation import IsotropicMutation
 from strategies.selection import TwoStageSelection
 from strategies.reproduction import AsexualReproduction
-from run_visualization.visualization import plot_population, plot_frame, plot_stats
+from run_visualization.visualization import plot_frame, plot_stats
 from stats_tracking.stats import SimulationStats
 
 
 # ---------------------------------------------------------------------------
 # Główna pętla symulacji
 # ---------------------------------------------------------------------------
+
 
 def run_simulation(
     population: Population,
@@ -36,8 +37,10 @@ def run_simulation(
     reproduction_strategy,
     mutation_strategy,
     max_generations: int = config.max_generations,
-    frames_dir: str = None,
+    frames_dir: str | None = None,
     verbose: bool = True,
+    target_size: int | None = None,
+    sigma: float | None = None,
 ) -> SimulationStats:
     """
     Uruchamia pętlę ewolucyjną i zwraca zebrane statystyki.
@@ -56,8 +59,15 @@ def run_simulation(
     :param max_generations:       liczba pokoleń do zasymulowania
     :param frames_dir:            katalog do zapisu klatek PNG (None = brak)
     :param verbose:               czy drukować postęp co 10 pokoleń
+    :param target_size:           docelowy rozmiar populacji (nadpisuje config.N)
+    :param sigma:                 parametr selekcji (nadpisuje config.sigma)
     :return:                      obiekt SimulationStats z wynikami
     """
+    if target_size is None:
+        target_size = config.N
+    if sigma is None:
+        sigma = config.sigma
+
     stats = SimulationStats()
 
     if frames_dir is not None:
@@ -78,29 +88,42 @@ def run_simulation(
             break
 
         # Krok 3: Reprodukcja
-        new_individuals = reproduction_strategy.reproduce(survivors, config.N)
+        new_individuals = reproduction_strategy.reproduce(survivors, target_size)
         population.set_individuals(new_individuals)
 
         # Zbieranie statystyk i zapis klatki (nowa populacja vs aktualne optimum)
-        stats.record(generation, population, alpha, config.sigma,
-                     reproduction_strategy=reproduction_strategy)
+        stats.record(
+            generation,
+            population,
+            alpha,
+            sigma,
+            reproduction_strategy=reproduction_strategy,
+        )
 
         if frames_dir is not None:
             frame_path = os.path.join(frames_dir, f"frame_{generation:03d}.png")
-            plot_frame(population, alpha, generation, stats,
-                       save_path=frame_path, show_plot=False,
-                       max_generations=max_generations,
-                       sigma=config.sigma)
+            plot_frame(
+                population,
+                alpha,
+                generation,
+                stats,
+                save_path=frame_path,
+                show_plot=False,
+                max_generations=max_generations,
+                sigma=sigma,
+            )
 
         # Krok 4: Zmiana środowiska
         environment.update()
 
         if verbose and generation % 10 == 0:
             r = stats.records[-1]
-            print(f"  Pokolenie {generation:4d} | "
-                  f"śr. fitness: {r.mean_fitness:.3f} | "
-                  f"dist. od optimum: {r.distance_from_optimum:.3f} | "
-                  f"var. fenotyp.: {r.phenotype_variance:.3f}")
+            print(
+                f"  Pokolenie {generation:4d} | "
+                f"śr. fitness: {r.mean_fitness:.3f} | "
+                f"dist. od optimum: {r.distance_from_optimum:.3f} | "
+                f"var. fenotyp.: {r.phenotype_variance:.3f}"
+            )
 
     return stats
 
@@ -109,18 +132,21 @@ def run_simulation(
 # Narzędzie do tworzenia GIF
 # ---------------------------------------------------------------------------
 
-def create_gif_from_frames(frames_dir: str, gif_filename: str,
-                            duration: float = 0.2) -> None:
+
+def create_gif_from_frames(
+    frames_dir: str, gif_filename: str, duration: float = 0.2
+) -> None:
     """
     Łączy wszystkie pliki PNG z katalogu frames_dir w animację GIF.
     Wymaga: pip install imageio
     """
     import imageio
+
     filenames = sorted(f for f in os.listdir(frames_dir) if f.endswith(".png"))
     if not filenames:
         print("Brak klatek do złożenia w GIF.")
         return
-    with imageio.get_writer(gif_filename, mode='I', duration=duration) as writer:
+    with imageio.get_writer(gif_filename, mode="I", duration=duration) as writer:
         for fname in filenames:
             writer.append_data(imageio.imread(os.path.join(frames_dir, fname)))
 
@@ -128,6 +154,7 @@ def create_gif_from_frames(frames_dir: str, gif_filename: str,
 # ---------------------------------------------------------------------------
 # Punkt wejścia
 # ---------------------------------------------------------------------------
+
 
 def main():
     # --- Ziarno losowości (config.seed = None → inna symulacja za każdym razem) ---
@@ -144,7 +171,7 @@ def main():
         size=config.N,
         n_dim=config.n,
         init_scale=config.init_scale,
-        alpha_init=config.alpha0,   # populacja startuje blisko alpha0, nie wokół zera
+        alpha_init=config.alpha0,  # populacja startuje blisko alpha0, nie wokół zera
     )
     selection = TwoStageSelection(
         sigma=config.sigma,
