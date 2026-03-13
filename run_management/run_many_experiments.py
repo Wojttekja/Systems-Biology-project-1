@@ -37,7 +37,7 @@ import sys
 from pathlib import Path
 
 # Needed for allowing imports from other subdirectories
-sys.path.append(str(Path(__file__).resolve().parents[1]))
+# sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 EXPERIMENTS_DIR = Path("experiments")
 
@@ -233,7 +233,7 @@ def main() -> None:
             return
 
     # ---- Import after confirmation so startup is fast ----
-    from run_experiment import run_one
+    from run_management.run_experiment import run_one
 
     # ---- Run sequentially ----
     succeeded: list[Path] = []

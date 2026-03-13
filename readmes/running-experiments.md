@@ -8,10 +8,14 @@ loading the results in Python or a spreadsheet.
 
 ## Concepts
 
-A *run* is one execution of `run_experiment.py` or `run_many_experiments.py`
+A *run* is one execution of `python -m run_management.run_experiment` or
+`python -m run_management.run_many_experiments`
 for a single JSON config. Each run produces one timestamped directory under
 `results/`. A *replicate* is a single evolutionary trajectory within that
 run (different random seed, same parameters).
+
+Run these entry points as modules from the project root. This keeps imports
+stable across platforms and avoids module path issues.
 
 The separation between **configs** (in `experiments/`, committed to git) and
 **results** (in `results/`, git-ignored) means every dataset is always
@@ -23,8 +27,8 @@ and you know exactly which parameters and code commit produced it.
 ## Running a single experiment
 
 ```bash
-python run_experiment.py experiments/baseline.json
-python run_experiment.py experiments/baseline.json --workers 4
+python -m run_management.run_experiment experiments/baseline.json
+python -m run_management.run_experiment experiments/baseline.json --workers 4
 ```
 
 `--workers N` sets the number of parallel processes. Defaults to
@@ -53,10 +57,10 @@ replicates had gone extinct by that generation).
 ## Running many experiments at once
 
 ```bash
-python run_many_experiments.py <targets> [options]
+python -m run_management.run_many_experiments <targets> [options]
 ```
 
-`run_many_experiments.py` resolves one or more targets into a sorted,
+`python -m run_management.run_many_experiments` resolves one or more targets into a sorted,
 deduplicated list of configs and runs them in sequence, printing a live
 progress banner for each one.
 
@@ -73,13 +77,13 @@ You can combine all forms freely:
 
 ```bash
 # Run a whole subfolder plus a few extra files
-python run_many_experiments.py experiments/my_sweep/ experiments/baseline.json
+python -m run_management.run_many_experiments experiments/my_sweep/ experiments/baseline.json
 
 # Combine two prefixes
-python run_many_experiments.py --prefix pop_N --prefix mut_xi
+python -m run_management.run_many_experiments --prefix pop_N --prefix mut_xi
 
 # Glob + individual file
-python run_many_experiments.py "experiments/sel_*" experiments/baseline.json
+python -m run_management.run_many_experiments "experiments/sel_*" experiments/baseline.json
 ```
 
 ### Options
@@ -100,10 +104,10 @@ in scripts or CI:
 
 ```bash
 # Preview — shows the list, does not run
-python run_many_experiments.py --prefix drift_c --dry-run
+python -m run_management.run_many_experiments --prefix drift_c --dry-run
 
 # Non-interactive — runs immediately
-python run_many_experiments.py --prefix drift_c --yes --workers 4
+python -m run_management.run_many_experiments --prefix drift_c --yes --workers 4
 ```
 
 ---
@@ -161,10 +165,10 @@ experiments/
     pop_N200.json
 ```
 
-Pass the subfolder name to `run_many_experiments.py`:
+Pass the subfolder name to `python -m run_management.run_many_experiments`:
 
 ```bash
-python run_many_experiments.py experiments/drift_exploration/ --workers 4
+python -m run_management.run_many_experiments experiments/drift_exploration/ --workers 4
 ```
 
 ---
