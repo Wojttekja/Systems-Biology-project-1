@@ -46,8 +46,8 @@ class ThresholdSelection(SelectionStrategy):
     """
 
     def __init__(self, sigma: float, threshold: float):
-        self.sigma = sigma
-        self.threshold = threshold
+        self.sigma: float = sigma
+        self.threshold: float = threshold
 
     def select(self, individuals: list[Individual], alpha: np.ndarray) -> list[Individual]:
         return [ind for ind in individuals
@@ -62,8 +62,8 @@ class ProportionalSelection(SelectionStrategy):
     """
 
     def __init__(self, sigma: float, N: int):
-        self.sigma = sigma
-        self.N = N
+        self.sigma: float = sigma
+        self.N: int = N
 
     def select(self, individuals: list[Individual], alpha: np.ndarray) -> list[Individual]:
         fitnesses = compute_fitnesses(individuals, alpha, self.sigma)
@@ -84,9 +84,9 @@ class TwoStageSelection(SelectionStrategy):
     """
 
     def __init__(self, sigma: float, threshold: float, N: int):
-        self.sigma = sigma
-        self.threshold = threshold
-        self.N = N
+        self.sigma: float = sigma
+        self.threshold: float = threshold
+        self.N: int = N
 
     def select(self, individuals: list[Individual], alpha: np.ndarray) -> list[Individual]:
         # Etap 1: selekcja progowa
