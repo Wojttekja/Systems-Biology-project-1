@@ -60,7 +60,7 @@ body:
   - type: textarea
     id: additionial_desc
     attributes:
-      label: "Additional Descirption"
+      label: "Additional Description"
       description: Explain used labels and provide neccesary information (i.e. about connection to the other items)
     validations:
       required: true
