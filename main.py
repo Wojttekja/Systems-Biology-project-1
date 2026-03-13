@@ -202,7 +202,7 @@ def main():
 
     # --- GIF ---
     print("\nTworzenie GIF-a...")
-    create_gif_from_frames(frames_dir, "simulation.gif")
+    create_gif_from_frames(frames_dir, "pictures/simulation.gif")
     print("GIF zapisany jako simulation.gif")
 
     # --- Wykres statystyk ---
