@@ -4,6 +4,18 @@ import numpy as np
 from .strategies import MutationStrategy
 
 
+# ---------------------------------------------------------------------------
+# Typing Import
+# ---------------------------------------------------------------------------
+
+from ..run_elements.population import Population
+from ..run_elements.individual import Individual
+
+# ---------------------------------------------------------------------------
+# Isotropic Mutation Strategy
+# ---------------------------------------------------------------------------
+
+
 class IsotropicMutation(MutationStrategy):
     """
     Izotropowa mutacja punktowa (domyślna, zgodna z treścią zadania):
@@ -26,12 +38,12 @@ class IsotropicMutation(MutationStrategy):
         self.mu_c = mu_c
         self.xi  = xi
 
-    def mutate(self, population) -> None:
+    def mutate(self, population: Population) -> None:
         """Mutuje in-place wszystkich osobników w populacji."""
         for ind in population.get_individuals():
             self._mutate_individual(ind)
 
-    def _mutate_individual(self, individual) -> None:
+    def _mutate_individual(self, individual: Individual) -> None:
         if np.random.rand() < self.mu:
             phenotype = individual.get_phenotype().copy()
             for i in range(len(phenotype)):
