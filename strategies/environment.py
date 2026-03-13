@@ -3,6 +3,10 @@
 import numpy as np
 from .strategies import EnvironmentDynamics
 
+# ---------------------------------------------------------------------------
+# Linear Shift Environment Strategy
+# ---------------------------------------------------------------------------
+
 
 class LinearShiftEnvironment(EnvironmentDynamics):
     """
@@ -21,9 +25,9 @@ class LinearShiftEnvironment(EnvironmentDynamics):
         :param c: wektor kierunkowej zmiany (średnie przesunięcie na pokolenie)
         :param delta: odch. std. losowych fluktuacji wokół c (0 = brak szumu)
         """
-        self.alpha = np.array(alpha_init, dtype=float)
-        self.c = np.array(c, dtype=float)
-        self.delta = float(delta)
+        self.alpha: np.ndarray = np.array(alpha_init, dtype=float)
+        self.c: np.ndarray = np.array(c, dtype=float)
+        self.delta: float = float(delta)
 
     def update(self) -> None:
         """alpha(t) = alpha(t-1) + N(c, delta^2 * I)"""

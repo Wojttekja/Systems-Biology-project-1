@@ -15,9 +15,15 @@ Przykład (reprodukcja płciowa):
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional
 import numpy as np
 
+
+# ---------------------------------------------------------------------------
+# Typing Import
+# ---------------------------------------------------------------------------
+
+from run_elements.population import Population
+from run_elements.individual import Individual
 
 # ---------------------------------------------------------------------------
 # Mutacja
@@ -37,7 +43,7 @@ class MutationStrategy(ABC):
     """
 
     @abstractmethod
-    def mutate(self, population) -> None:
+    def mutate(self, population: Population) -> None:
         """
         Mutuje in-place wszystkich osobników w populacji.
         :param population: obiekt Population
@@ -59,7 +65,7 @@ class ReproductionStrategy(ABC):
     """
 
     @abstractmethod
-    def reproduce(self, survivors: list, target_size: int) -> list:
+    def reproduce(self, survivors: list[Individual], target_size: int) -> list[Individual]:
         """
         :param survivors: lista osobników, które przeżyły selekcję
         :param target_size: docelowy rozmiar nowej populacji (N)
@@ -67,7 +73,7 @@ class ReproductionStrategy(ABC):
         """
         ...
 
-    def get_reproduction_stats(self) -> Optional[dict]:
+    def get_reproduction_stats(self) -> None|dict[str, float]:
         """
         Opcjonalna metoda zwracająca statystyki z ostatniego wywołania reproduce().
         Domyślnie None – podklasy mogą nadpisać, aby udostępnić np.:
@@ -92,7 +98,7 @@ class SelectionStrategy(ABC):
     """
 
     @abstractmethod
-    def select(self, individuals: list, alpha: np.ndarray) -> list:
+    def select(self, individuals: list[Individual], alpha: np.ndarray) -> list[Individual]:
         """
         :param individuals: lista wszystkich osobników w populacji
         :param alpha: aktualny optymalny fenotyp środowiska

@@ -8,8 +8,13 @@ class Population:
     Klasa przechowuje listę osobników (Individual)
     oraz pomaga w obsłudze różnych operacji na populacji.
     """
-    def __init__(self, size, n_dim, init_scale: float = 0.1,
-                 alpha_init=None):
+    def __init__(
+        self, 
+        size: int, 
+        n_dim: int, 
+        init_scale: float = 0.1,
+        alpha_init: None|np.ndarray = None
+        ):
         """
         Inicjalizuje populację losowymi fenotypami w n-wymiarach.
         :param size:       liczba osobników (N)
@@ -24,15 +29,17 @@ class Population:
         """
         center = (np.array(alpha_init, dtype=float)
                   if alpha_init is not None else np.zeros(n_dim))
-        self.individuals = []
+        
+        self.individuals: list[Individual] = []
+        
         for _ in range(size):
             phenotype = np.random.normal(loc=center, scale=init_scale, size=n_dim)
             self.individuals.append(Individual(phenotype))
 
-    def get_individuals(self):
+    def get_individuals(self) -> list[Individual]:
         return self.individuals
 
-    def set_individuals(self, new_individuals):
+    def set_individuals(self, new_individuals: list[Individual]):
         self.individuals = new_individuals
 
     def __len__(self) -> int:
