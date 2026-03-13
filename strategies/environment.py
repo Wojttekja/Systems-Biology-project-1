@@ -3,6 +3,10 @@
 import numpy as np
 from .strategies import EnvironmentDynamics
 
+# ---------------------------------------------------------------------------
+# Linear Shift Environment Strategy
+# ---------------------------------------------------------------------------
+
 
 class LinearShiftEnvironment(EnvironmentDynamics):
     """
