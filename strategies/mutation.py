@@ -34,9 +34,9 @@ class IsotropicMutation(MutationStrategy):
         :param mu_c: prawdopodobieństwo mutacji pojedynczej cechy
         :param xi:   odchylenie std zmiany mutacyjnej ∆p_i
         """
-        self.mu  = mu
-        self.mu_c = mu_c
-        self.xi  = xi
+        self.mu: float = mu
+        self.mu_c: float = mu_c
+        self.xi: float  = xi
 
     def mutate(self, population: Population) -> None:
         """Mutuje in-place wszystkich osobników w populacji."""
