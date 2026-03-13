@@ -22,8 +22,8 @@ import numpy as np
 # Typing Import
 # ---------------------------------------------------------------------------
 
-from ..run_elements.population import Population
-from ..run_elements.individual import Individual
+from run_elements.population import Population
+from run_elements.individual import Individual
 
 # ---------------------------------------------------------------------------
 # Mutacja

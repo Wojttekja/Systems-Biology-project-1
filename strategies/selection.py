@@ -8,7 +8,7 @@ from .strategies import SelectionStrategy
 # Typing Import
 # ---------------------------------------------------------------------------
 
-from ..run_elements.individual import Individual
+from run_elements.individual import Individual
 
 # ---------------------------------------------------------------------------
 # Funkcje pomocnicze (używane też w stats.py)

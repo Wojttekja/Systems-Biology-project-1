@@ -9,7 +9,7 @@ from .strategies import ReproductionStrategy
 # Typing Import
 # ---------------------------------------------------------------------------
 
-from ..run_elements.individual import Individual
+from run_elements.individual import Individual
 
 # ---------------------------------------------------------------------------
 # Asexual Reproduction Strategy

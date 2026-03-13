@@ -8,8 +8,8 @@ from .strategies import MutationStrategy
 # Typing Import
 # ---------------------------------------------------------------------------
 
-from ..run_elements.population import Population
-from ..run_elements.individual import Individual
+from run_elements.population import Population
+from run_elements.individual import Individual
 
 # ---------------------------------------------------------------------------
 # Isotropic Mutation Strategy
