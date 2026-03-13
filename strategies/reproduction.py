@@ -5,6 +5,17 @@ import numpy as np
 from .strategies import ReproductionStrategy
 
 
+# ---------------------------------------------------------------------------
+# Typing Import
+# ---------------------------------------------------------------------------
+
+from ..run_elements.individual import Individual
+
+# ---------------------------------------------------------------------------
+# Asexual Reproduction Strategy
+# ---------------------------------------------------------------------------
+
+
 class AsexualReproduction(ReproductionStrategy):
     """
     Reprodukcja bezpłciowa (klonowanie):
@@ -18,7 +29,7 @@ class AsexualReproduction(ReproductionStrategy):
     def __init__(self):
         self._last_counts: np.ndarray = np.array([])
 
-    def reproduce(self, survivors: list, target_size: int) -> list:
+    def reproduce(self, survivors: list[Individual], target_size: int) -> list[Individual]:
         if not survivors:
             self._last_counts = np.array([])
             return []
@@ -27,7 +38,7 @@ class AsexualReproduction(ReproductionStrategy):
         self._last_counts = np.bincount(indices, minlength=len(survivors))
         return [copy.deepcopy(survivors[i]) for i in indices]
 
-    def get_reproduction_stats(self) -> dict:
+    def get_reproduction_stats(self) -> dict[str, float]:
         """
         Zwraca statystyki z ostatniego reproduce():
           n_parents       – ilu osobników miało ≥1 potomka ("ewolucyjny sukces")
@@ -45,5 +56,5 @@ class AsexualReproduction(ReproductionStrategy):
 
 
 # Funkcja pomocnicza zachowana dla kompatybilności wstecznej
-def asexual_reproduction(survivors: list, N: int) -> list:
+def asexual_reproduction(survivors: list[Individual], N: int) -> list[Individual]:
     return AsexualReproduction().reproduce(survivors, N)
