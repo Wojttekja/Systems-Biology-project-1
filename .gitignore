@@ -7,5 +7,5 @@ __pycache__/
 .DS_Store
 simulation_stats.png
 .vscode
-untracked
+untracked/
 results/
