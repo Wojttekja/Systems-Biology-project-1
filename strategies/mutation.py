@@ -1,7 +1,7 @@
 # mutation.py
 
 import numpy as np
-from .strategies import MutationStrategy
+from .unified_mutations import UnifiedMutations
 
 
 # ---------------------------------------------------------------------------
@@ -16,7 +16,7 @@ from run_elements.individual import Individual
 # ---------------------------------------------------------------------------
 
 
-class IsotropicMutation(MutationStrategy):
+class IsotropicMutation(UnifiedMutations):
     """
     Izotropowa mutacja punktowa (domyślna, zgodna z treścią zadania):
       - Z prawdopodobieństwem mu osobnik ulega mutacji
@@ -42,6 +42,10 @@ class IsotropicMutation(MutationStrategy):
         """Mutuje in-place wszystkich osobników w populacji."""
         for ind in population.get_individuals():
             self._mutate_individual(ind)
+
+    def update_alpha(self, new_alpha: np.ndarray) -> None:
+        """Empty Method"""
+        pass
 
     def _mutate_individual(self, individual: Individual) -> None:
         if np.random.rand() < self.mu:
