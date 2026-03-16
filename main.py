@@ -79,6 +79,8 @@ def run_simulation(
         # Krok 1: Mutacja
         mutation_strategy.mutate(population)
 
+        mutation_strategy.update_alpha(alpha)
+
         # Krok 2: Selekcja
         survivors = selection_strategy.select(population.get_individuals(), alpha)
         if not survivors:
