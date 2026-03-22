@@ -1,6 +1,7 @@
 # mutation.py
 
 import numpy as np
+from collections import deque
 from .unified_mutations import UnifiedMutations
 
 
@@ -75,7 +76,7 @@ class DirectionalMutation(UnifiedMutations):
          the mean of the last `k` recorded environmental shifts.
     """
 
-    def __init__(self, mu: float, mu_c: float, xi: float, k: int, b: float, init_alpha: np.ndarray):
+    def __init__(self, mu: float, mu_c: float, xi: float, k: int, b: float):
         """Initialize directional mutation parameters.
 
         :param mu: Probability that an individual mutates.
@@ -84,8 +85,6 @@ class DirectionalMutation(UnifiedMutations):
         :param k: Number of most recent environmental shifts used to estimate
             the directional component.
         :param b: Scaling factor applied to the directional component.
-        :param init_alpha: Initial optimal phenotype vector used as a baseline
-            for tracking environmental shifts.
         """
         self.mu: float = mu
         self.mu_c: float = mu_c
@@ -93,8 +92,8 @@ class DirectionalMutation(UnifiedMutations):
         self.k: int = k
         self.b: float = b
 
-        self.env_shifts: list[np.ndarray] = []
-        self.previous_alpha: np.ndarray = init_alpha
+        self.env_shifts: deque[np.ndarray] = deque(maxlen=k)
+        self.previous_alpha: np.ndarray | None = None
 
     def mutate(self, population: Population) -> None:
         """Mutates in place all individuals in the Population.
@@ -103,6 +102,7 @@ class DirectionalMutation(UnifiedMutations):
         """
         directional_component = self.calculate_directional_component()
         for ind in population.get_individuals():
+            print(directional_component)
             self._mutate_individual(ind, directional_component)
 
     def update_alpha(self, new_alpha: np.ndarray) -> None:
@@ -111,7 +111,8 @@ class DirectionalMutation(UnifiedMutations):
 
         :param new_alpha: new optimal phenotype
         """
-        self.env_shifts.append(new_alpha - self.previous_alpha)
+        if self.previous_alpha is not None:
+            self.env_shifts.append(new_alpha - self.previous_alpha)
         self.previous_alpha = new_alpha
 
     def calculate_directional_component(self) -> np.ndarray:
@@ -122,8 +123,8 @@ class DirectionalMutation(UnifiedMutations):
         if no_shifts == 0:
             return np.zeros_like(self.previous_alpha)
 
-        directional_component = np.sum(self.env_shifts[-no_shifts:]) / no_shifts
-        return directional_component
+        recent_shifts = list(self.env_shifts)[-no_shifts:]
+        return np.mean(np.stack(recent_shifts, axis=0), axis=0)
 
     def _mutate_individual(self, individual: Individual, directional_component: np.ndarray) -> None:
         """Applies mutation to an individual with probability of `self.mu`. The mutation is a combination of isotropic and directional mutation.
@@ -154,3 +155,4 @@ def mutate_individual(individual, mu: float, mu_c: float, xi: float) -> None:
 
 def mutate_population(population, mu: float, mu_c: float, xi: float) -> None:
     IsotropicMutation(mu, mu_c, xi).mutate(population)
+
