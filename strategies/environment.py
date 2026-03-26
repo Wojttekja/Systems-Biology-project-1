@@ -43,3 +43,28 @@ class LinearShiftEnvironment(EnvironmentDynamics):
 
 # Alias dla kompatybilności wstecznej
 Environment = LinearShiftEnvironment
+
+
+class EnvironmentWithRandomChanges(EnvironmentDynamics):
+    """
+    Scenario with random rapid changes in drift direction.
+    Shifts come from symetric Pareto distribution which is long-tailed.
+    It supports drifts across only some dimensions. It is controlled via parameter `c`.
+    """
+
+    def __init__(self, alpha_init: np.ndarray, c: np.ndarray, a: float) -> None:
+        """
+        :param alpha_init: starting optimal phenotype
+        :param c: weights for each direction. `0` at position `i` means no shift across this dimension.
+        :param a: parameter for Pareto distribution.
+        """
+        self.alpha: np.ndarray = alpha_init
+        self.c: np.ndarray = c
+        self.a = a
+
+    def update(self) -> None:
+        r = np.random.pareto(self.a, self.alpha.size) * np.random.choice([-1, 1], size=self.alpha.size)
+        self.alpha = self.alpha + self.c * r
+
+    def get_optimal_phenotype(self) -> np.ndarray:
+        return self.alpha.copy()
