@@ -7,6 +7,7 @@ import numpy as np
 # -------------------
 N = 100           # liczba osobników w populacji
 n = 4             # wymiar przestrzeni fenotypowej
+init_weights = np.ones(n) # Wagi dla mutacji kierunkowych
 
 # Rozrzut początkowych fenotypów wokół optimum.
 # Zbyt duży → większość osobników ma fitness ≈ 0 i wymiera w pierwszym pokoleniu.
