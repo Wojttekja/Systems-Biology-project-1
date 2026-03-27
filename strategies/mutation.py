@@ -80,7 +80,7 @@ class DirectionalMutation(UnifiedMutations):
         """Initialize directional mutation parameters.
 
         :param mu: Probability that an individual mutates.
-        :param mu_c: Probability that a single trait mutates.
+        :param mu_c: Probability that a single trait mutates isotropically.
         :param xi: Standard deviation of isotropic mutational change per trait.
         :param k: Number of most recent environmental shifts used to estimate
             the directional component.
@@ -144,6 +144,83 @@ class DirectionalMutation(UnifiedMutations):
             individual.set_phenotype(new_phenotype)
 
 
+class WeightedShiftsMutation(UnifiedMutations):
+    def __init__(self, mu: float, mu_c: float, xi: float, k: int, b: float):
+        """Initialize WeightedShift mutation parameters.
+
+        :param mu: Probability that an individual mutates.
+        :param mu_c: Probability that a single trait mutates isotropically.
+        :param xi: Standard deviation of isotropic mutational change per trait.
+        :param k: Number of most recent environmental shifts used to estimate
+            the directional component.
+        :param b: Scaling factor applied to the directional component.
+        """
+        self.mu: float = mu
+        self.mu_c: float = mu_c
+        self.xi: float = xi
+        self.k: int = k
+        self.b: float = b
+
+        self.env_shifts: deque[np.ndarray] = deque(maxlen=k)
+        self.previous_alpha: np.ndarray | None = None
+
+    def mutate(self, population: Population) -> None:
+        """Mutates in place all individuals in the Population.
+
+        :param population: A population to which the mutations will be applied.
+        """
+        for ind in population.get_individuals():
+            self._mutate_individual(ind)
+
+    def update_alpha(self, new_alpha: np.ndarray) -> None:
+        """
+        Calculates environmental shift and appends it to `self.env_shifts`
+
+        :param new_alpha: new optimal phenotype
+        """
+        if self.previous_alpha is not None:
+            self.env_shifts.append(new_alpha - self.previous_alpha)
+        self.previous_alpha = new_alpha
+
+    def calculate_directional_component(self, individual: Individual) -> np.ndarray:
+        num_observations = len(self.env_shifts)
+        if num_observations < 2:
+            return np.zeros(self.previous_alpha.shape[0])
+
+        t = np.arange(num_observations)
+        num_dimensions = self.previous_alpha.shape[0]
+
+        shifts = np.array(self.env_shifts)
+        predictions = []
+
+        for d in range(num_dimensions):
+            y = shifts[:, d]
+            coeffs = np.polyfit(t, y, 1, w=individual.weights[-num_observations:])
+            p = np.poly1d(coeffs)
+            predictions.append(p(num_observations))
+
+        return np.array(predictions)
+
+    def _mutate_individual(self, individual: Individual) -> None:
+        """Applies mutation to an individual with probability of `self.mu`. The mutation is a combination of isotropic and directional mutation.
+
+        :param individual: Individual to mutate.
+        :param directional_component: directional component of mutation calculated from recent environmental shifts.
+        """
+        if np.random.rand() < self.mu:
+            directional_component = self.calculate_directional_component(individual)
+            old_phenotype = individual.get_phenotype().copy()
+
+            mask = np.random.random(old_phenotype.size) < self.mu_c
+            isotropic_component = np.where(
+                mask, np.random.normal(loc=0.0, scale=self.xi, size=old_phenotype.size), np.zeros_like(old_phenotype)
+            )
+
+            new_phenotype = old_phenotype + (self.b - 1) * isotropic_component + self.b * directional_component
+
+            individual.set_phenotype(new_phenotype)
+
+
 # ---------------------------------------------------------------------------
 # Funkcje pomocnicze – zachowane dla kompatybilności wstecznej
 # ---------------------------------------------------------------------------
@@ -155,4 +232,3 @@ def mutate_individual(individual, mu: float, mu_c: float, xi: float) -> None:
 
 def mutate_population(population, mu: float, mu_c: float, xi: float) -> None:
     IsotropicMutation(mu, mu_c, xi).mutate(population)
-
