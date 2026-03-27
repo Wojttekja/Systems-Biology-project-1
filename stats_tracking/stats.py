@@ -23,7 +23,9 @@ class GenerationRecord:
     generation: int
     mean_fitness: float
     mean_phenotype: np.ndarray
+    mean_weights: np.ndarray
     phenotype_variance: float     # uśredniona wariancja po wymiarach (miara różnorodności)
+    weights_variance: float
     distance_from_optimum: float  # ||mean_phenotype - alpha||
     population_size: int
     # --- Statystyki reprodukcji ---
@@ -84,10 +86,13 @@ class SimulationStats:
         self.alpha_history.append(alpha.copy())
 
         phenotypes = np.array([ind.get_phenotype() for ind in individuals])
+        weights = np.array([ind.weights for ind in individuals])
         fitnesses = compute_fitnesses(individuals, alpha, sigma)
 
         mean_phenotype = phenotypes.mean(axis=0)
         phenotype_variance = phenotypes.var(axis=0).mean()
+        mean_weights = weights.mean(axis=0)
+        weights_variance = weights.var(axis=0).mean()
         distance = float(np.linalg.norm(mean_phenotype - alpha))
         mean_fitness = float(fitnesses.mean())
 
@@ -99,7 +104,9 @@ class SimulationStats:
             generation=generation,
             mean_fitness=mean_fitness,
             mean_phenotype=mean_phenotype,
+            mean_weights=mean_weights,
             phenotype_variance=float(phenotype_variance),
+            weights_variance=float(weights_variance),
             distance_from_optimum=distance,
             population_size=len(individuals),
             n_parents=repro.get('n_parents', 0),
@@ -128,6 +135,10 @@ class SimulationStats:
     @property
     def phenotype_variances(self) -> np.ndarray:
         return np.array([r.phenotype_variance for r in self.records])
+
+    @property
+    def weights_variances(self) -> np.ndarray:
+        return np.array([r.weights_variance for r in self.records])
 
     @property
     def population_sizes(self) -> np.ndarray:
@@ -168,5 +179,6 @@ class SimulationStats:
             f"Pokoleń: {last.generation + 1} | Status: {status}\n"
             f"Ostatnie śr. fitness: {last.mean_fitness:.4f} | "
             f"Odległość od optimum: {last.distance_from_optimum:.4f} | "
-            f"Wariancja fenotypowa: {last.phenotype_variance:.4f}"
+            f"Wariancja fenotypowa: {last.phenotype_variance:.4f} | "
+            f"Wariancja wag: {last.weights_variance:.4f}"
         )
