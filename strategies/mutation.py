@@ -193,9 +193,11 @@ class WeightedShiftsMutation(UnifiedMutations):
         shifts = np.array(self.env_shifts)
         predictions = []
 
+        softmaxed_weights = np.exp(individual.weights[-num_observations:]) / np.sum(np.exp(individual.weights[-num_observations]))
+
         for d in range(num_dimensions):
             y = shifts[:, d]
-            coeffs = np.polyfit(t, y, 1, w=individual.weights[-num_observations:])
+            coeffs = np.polyfit(t, y, 1, w=softmaxed_weights)
             p = np.poly1d(coeffs)
             predictions.append(p(num_observations))
 
