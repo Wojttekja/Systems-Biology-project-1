@@ -216,7 +216,7 @@ class WeightedShiftsMutation(UnifiedMutations):
                 mask, np.random.normal(loc=0.0, scale=self.xi, size=old_phenotype.size), np.zeros_like(old_phenotype)
             )
 
-            new_phenotype = old_phenotype + (self.b - 1) * isotropic_component + self.b * directional_component
+            new_phenotype = old_phenotype + (1 - self.b) * isotropic_component + self.b * directional_component
 
             individual.set_phenotype(new_phenotype)
 
