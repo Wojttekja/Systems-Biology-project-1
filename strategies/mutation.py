@@ -207,7 +207,9 @@ class WeightedShiftsMutation(UnifiedMutations):
         :param individual: Individual to mutate.
         :param directional_component: directional component of mutation calculated from recent environmental shifts.
         """
+
         if np.random.rand() < self.mu:
+            # mutate phenotype
             directional_component = self.calculate_directional_component(individual)
             old_phenotype = individual.get_phenotype().copy()
 
@@ -219,6 +221,15 @@ class WeightedShiftsMutation(UnifiedMutations):
             new_phenotype = old_phenotype + (1 - self.b) * isotropic_component + self.b * directional_component
 
             individual.set_phenotype(new_phenotype)
+
+            # mutate weights
+            old_weights = individual.weights.copy()
+            mask = np.random.random(old_weights.size) < self.mu_c
+            isotropic_component_weights = np.where(
+                mask, np.random.normal(loc=0.0, scale=self.xi, size=old_weights.size), np.zeros_like(old_weights)
+            )
+            new_weights = old_weights + isotropic_component_weights
+            individual.weights = new_weights
 
 
 # ---------------------------------------------------------------------------
