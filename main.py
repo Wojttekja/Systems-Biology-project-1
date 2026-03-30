@@ -174,6 +174,7 @@ def main():
         n_dim=config.n,
         init_scale=config.init_scale,
         alpha_init=config.alpha0,  # populacja startuje blisko alpha0, nie wokół zera
+        weights_init=config.init_weights,
     )
     selection = TwoStageSelection(
         sigma=config.sigma,
