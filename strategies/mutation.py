@@ -187,8 +187,11 @@ class WeightedShiftsMutation(UnifiedMutations):
 
     def calculate_directional_component(self, individual: Individual) -> np.ndarray:
         num_observations = len(self.env_shifts)
+        if num_observations < 1:
+            return np.zeros_like(individual.phenotype)
         if num_observations < 2:
-            return np.zeros(self.previous_alpha.shape[0])
+            return self.env_shifts[-1]
+
 
         t = np.arange(num_observations)
         num_dimensions = self.previous_alpha.shape[0]
@@ -229,13 +232,79 @@ class WeightedShiftsMutation(UnifiedMutations):
 
             # mutate weights
             old_weights = individual.weights.copy()
-            mask = np.random.random(old_weights.size) < self.mu_c
-            isotropic_component_weights = np.where(
-                mask, np.random.normal(loc=0.0, scale=self.xi, size=old_weights.size), np.zeros_like(old_weights)
-            )
-            new_weights = old_weights + isotropic_component_weights
+            new_weights = 0.5 * old_weights + 0.5 * np.random.uniform(0, 1, size=old_weights.size)
             individual.weights = new_weights
 
+
+class AdaptiveDirectionalMutation(UnifiedMutations):
+    def __init__(self, mu: float, mu_c: float, xi: float):
+        """Initialize WeightedShift mutation parameters.
+
+        :param mu: Probability that an individual mutates.
+        :param mu_c: Probability that a single trait mutates isotropically.
+        :param xi: Standard deviation of isotropic mutational change per trait.
+        :param k: Number of most recent environmental shifts used to estimate
+            the directional component.
+        :param b: Scaling factor applied to the directional component.
+        """
+        self.mu: float = mu
+        self.mu_c: float = mu_c
+        self.xi: float = xi
+
+        self.previous_shift: np.ndarray | None = None
+        self.previous_alpha: np.ndarray | None = None
+
+    def update_alpha(self, new_alpha: np.ndarray) -> None:
+        """
+        Calculates environmental shift.
+
+        :param new_alpha: new optimal phenotype
+        """
+        if self.previous_alpha is not None:
+            self.env_shifts = (new_alpha - self.previous_alpha)
+        self.previous_alpha = new_alpha
+
+    def calculate_directional_component(self) -> np.ndarray:
+        """Returns average of `k` last shifts."""
+
+        if self.previous_shift is None:
+            return np.zeros_like(self.previous_alpha)
+
+        return self.previous_shift.copy()
+    
+    def mutate(self, population: Population) -> None:
+        """Mutates in place all individuals in the Population.
+
+        :param population: A population to which the mutations will be applied.
+        """
+        directional_component = self.calculate_directional_component()
+        for ind in population.get_individuals():
+            self._mutate_individual(ind, directional_component)
+
+    def _mutate_individual(self, individual: Individual, directional_component: np.ndarray) -> None:
+        """Applies mutation to an individual with probability of `self.mu`. The mutation is a combination of isotropic and directional mutation.
+
+        :param individual: Individual to mutate.
+        :param directional_component: directional component of mutation calculated from recent environmental shifts.
+        """
+        if np.random.rand() < self.mu:
+            old_phenotype = individual.get_phenotype().copy()
+            if directional_component.shape == ():
+                directional_component = np.zeros_like(old_phenotype)
+            mask = np.random.random(old_phenotype.size) < self.mu_c
+            isotropic_component = np.where(
+                mask, np.random.normal(loc=0.0, scale=self.xi, size=old_phenotype.size), np.zeros_like(old_phenotype)
+            )
+
+            new_phenotype = old_phenotype + (1 - individual.lambdas) * isotropic_component + individual.lambdas * directional_component
+
+            individual.set_phenotype(new_phenotype)
+        
+            # mutate lambdas
+            old_lambdas = individual.lambdas.copy()
+            
+            new_lambdas = 0.5 * old_lambdas + 0.5 * np.random.uniform(0, 1, size=old_lambdas.size)
+            individual.lambdas = new_lambdas
 
 # ---------------------------------------------------------------------------
 # Funkcje pomocnicze – zachowane dla kompatybilności wstecznej

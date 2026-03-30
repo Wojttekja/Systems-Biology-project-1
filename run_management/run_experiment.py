@@ -83,7 +83,51 @@ def _run_replicate(args: tuple) -> tuple:
     n = cfg["n"]
     alpha0 = np.zeros(n)
 
-    pop = Population(cfg["N"], n, cfg["init_scale"], alpha_init=alpha0)
+    mut_cfg = cfg.get("mutation_strategy", {})
+    mut_type = (
+        mut_cfg.get("type", "isotropic")
+        if isinstance(mut_cfg, dict)
+        else "isotropic"
+    )
+    mut_params = mut_cfg.get("params", {}) if isinstance(mut_cfg, dict) else {}
+
+    weights_dim = n
+    if mut_type == "weighted_shifts":
+        weights_dim = int(mut_params.get("k", cfg.get("k", n)))
+
+    weights_raw = mut_params.get(
+        "init_weights",
+        cfg.get("init_weights", mut_params.get("weights", cfg.get("weights", 1.0))),
+    )
+    lambdas_raw = mut_params.get("lambdas", cfg.get("lambdas", 0.5))
+
+    init_weights = (
+        np.full(weights_dim, weights_raw, dtype=float)
+        if np.isscalar(weights_raw)
+        else np.array(weights_raw, dtype=float)
+    )
+    lambdas = (
+        np.full(n, lambdas_raw, dtype=float)
+        if np.isscalar(lambdas_raw)
+        else np.array(lambdas_raw, dtype=float)
+    )
+    if init_weights.shape != (weights_dim,):
+        raise ValueError(
+            f"Invalid weights shape {init_weights.shape}; expected ({weights_dim},)"
+        )
+    if lambdas.shape != (n,):
+        raise ValueError(
+            f"Invalid lambdas shape {lambdas.shape}; expected ({n},)"
+        )
+
+    pop = Population(
+        size=cfg["N"],
+        n_dim=n,
+        weights_init=init_weights,
+        init_scale=cfg["init_scale"],
+        alpha_init=alpha0,
+        lambdas_init=lambdas,
+    )
     env = build_environment_from_config(cfg, alpha_init=alpha0)
     sel = TwoStageSelection(cfg["sigma"], cfg["threshold"], cfg["N"])
     rep = AsexualReproduction()
@@ -145,6 +189,12 @@ def _stats_to_rows(stats) -> list:
         for dim, val in enumerate(r.mean_weights):
             row[f"mean_weight_{dim}"] = float(val)
 
+        # Save mean lambdas and lambda variance per dimension.
+        for dim, val in enumerate(r.mean_lambdas):
+            row[f"mean_lambda_{dim}"] = float(val)
+        for dim, val in enumerate(r.lambda_variance_by_dim):
+            row[f"lambda_variance_{dim}"] = float(val)
+
         # Include any student-defined extra metrics as extra_<key> columns
         for k, v in r.extra.items():
             row[f"extra_{k}"] = v
@@ -185,6 +235,7 @@ def _write_summary(all_stats: list, out_dir: Path) -> None:
         "distance_from_optimum",
         "phenotype_variance",
         "weights_variance",
+        "lambdas_variance",
         "population_size",
         "n_parents",
         "median_offspring",
@@ -193,6 +244,10 @@ def _write_summary(all_stats: list, out_dir: Path) -> None:
 
     max_weight_dims = max(
         (len(r.mean_weights) for s in all_stats for r in s.records),
+        default=0,
+    )
+    max_lambda_dims = max(
+        (len(r.mean_lambdas) for s in all_stats for r in s.records),
         default=0,
     )
 
@@ -206,6 +261,8 @@ def _write_summary(all_stats: list, out_dir: Path) -> None:
         row = {"generation": g}
         values = {m: [] for m in scalar_metrics}
         weight_dim_values = [[] for _ in range(max_weight_dims)]
+        lambda_mean_dim_values = [[] for _ in range(max_lambda_dims)]
+        lambda_var_dim_values = [[] for _ in range(max_lambda_dims)]
         extinct_count = 0
 
         for s in all_stats:
@@ -218,6 +275,12 @@ def _write_summary(all_stats: list, out_dir: Path) -> None:
                     values[m].append(getattr(rec, m))
                 for dim in range(min(max_weight_dims, len(rec.mean_weights))):
                     weight_dim_values[dim].append(float(rec.mean_weights[dim]))
+                for dim in range(min(max_lambda_dims, len(rec.mean_lambdas))):
+                    lambda_mean_dim_values[dim].append(float(rec.mean_lambdas[dim]))
+                for dim in range(min(max_lambda_dims, len(rec.lambda_variance_by_dim))):
+                    lambda_var_dim_values[dim].append(
+                        float(rec.lambda_variance_by_dim[dim])
+                    )
 
         for m in scalar_metrics:
             vals = values[m]
@@ -229,6 +292,22 @@ def _write_summary(all_stats: list, out_dir: Path) -> None:
                 float(np.mean(vals)) if vals else float("nan")
             )
             row[f"mean_weight_{dim}_std"] = (
+                float(np.std(vals)) if vals else float("nan")
+            )
+
+        for dim, vals in enumerate(lambda_mean_dim_values):
+            row[f"mean_lambda_{dim}_mean"] = (
+                float(np.mean(vals)) if vals else float("nan")
+            )
+            row[f"mean_lambda_{dim}_std"] = (
+                float(np.std(vals)) if vals else float("nan")
+            )
+
+        for dim, vals in enumerate(lambda_var_dim_values):
+            row[f"lambda_variance_{dim}_mean"] = (
+                float(np.mean(vals)) if vals else float("nan")
+            )
+            row[f"lambda_variance_{dim}_std"] = (
                 float(np.std(vals)) if vals else float("nan")
             )
 

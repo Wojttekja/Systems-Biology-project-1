@@ -24,8 +24,11 @@ class GenerationRecord:
     mean_fitness: float
     mean_phenotype: np.ndarray
     mean_weights: np.ndarray
+    mean_lambdas: np.ndarray
     phenotype_variance: float     # uśredniona wariancja po wymiarach (miara różnorodności)
     weights_variance: float
+    lambdas_variance: float
+    lambda_variance_by_dim: np.ndarray
     distance_from_optimum: float  # ||mean_phenotype - alpha||
     population_size: int
     # --- Statystyki reprodukcji ---
@@ -87,12 +90,16 @@ class SimulationStats:
 
         phenotypes = np.array([ind.get_phenotype() for ind in individuals])
         weights = np.array([ind.weights for ind in individuals])
+        lambdas = np.array([ind.lambdas for ind in individuals])
         fitnesses = compute_fitnesses(individuals, alpha, sigma)
 
         mean_phenotype = phenotypes.mean(axis=0)
         phenotype_variance = phenotypes.var(axis=0).mean()
         mean_weights = weights.mean(axis=0)
         weights_variance = weights.var(axis=0).mean()
+        mean_lambdas = lambdas.mean(axis=0)
+        lambda_variance_by_dim = lambdas.var(axis=0)
+        lambdas_variance = lambda_variance_by_dim.mean()
         distance = float(np.linalg.norm(mean_phenotype - alpha))
         mean_fitness = float(fitnesses.mean())
 
@@ -105,8 +112,11 @@ class SimulationStats:
             mean_fitness=mean_fitness,
             mean_phenotype=mean_phenotype,
             mean_weights=mean_weights,
+            mean_lambdas=mean_lambdas,
             phenotype_variance=float(phenotype_variance),
             weights_variance=float(weights_variance),
+            lambdas_variance=float(lambdas_variance),
+            lambda_variance_by_dim=lambda_variance_by_dim,
             distance_from_optimum=distance,
             population_size=len(individuals),
             n_parents=repro.get('n_parents', 0),
@@ -139,6 +149,10 @@ class SimulationStats:
     @property
     def weights_variances(self) -> np.ndarray:
         return np.array([r.weights_variance for r in self.records])
+
+    @property
+    def lambdas_variances(self) -> np.ndarray:
+        return np.array([r.lambdas_variance for r in self.records])
 
     @property
     def population_sizes(self) -> np.ndarray:

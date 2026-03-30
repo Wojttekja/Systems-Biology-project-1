@@ -64,6 +64,21 @@ def _coerce_drift_vector(c_raw, n: int) -> np.ndarray:
     return c
 
 
+def _coerce_vector_param(raw_value, n: int, name: str) -> np.ndarray:
+    """Konwertuje skalar lub listę na wektor długości n."""
+    vec = (
+        np.full(n, raw_value, dtype=float)
+        if np.isscalar(raw_value)
+        else np.array(raw_value, dtype=float)
+    )
+    if vec.shape != (n,):
+        raise ValueError(
+            f"Parametr '{name}' musi mieć długość n={n} "
+            f"(otrzymano kształt {vec.shape})."
+        )
+    return vec
+
+
 def build_environment_from_config(cfg: dict, alpha_init: np.ndarray):
     """
     Buduje strategię środowiska na podstawie configu.
@@ -96,7 +111,10 @@ def build_mutation_from_config(cfg: dict):
     Buduje strategię mutacji na podstawie configu.
 
     Obsługiwany format (nowy):
-      "mutation_strategy": {"type": "isotropic|directional|weighted_shifts", "params": {...}}
+      "mutation_strategy": {
+        "type": "isotropic|directional|weighted_shifts|adaptive_directional",
+        "params": {...}
+      }
 
     Kompatybilność wsteczna:
       mu, mu_c, xi (+ k, b) na poziomie głównym configu.
@@ -122,9 +140,13 @@ def build_mutation_from_config(cfg: dict):
         b = float(_value_from_mapping(cfg, mut_params, "b", required=True))
         return WeightedShiftsMutation(mu, mu_c, xi, k=k, b=b)
 
+    if mut_type == "adaptive_directional":
+        from strategies.mutation import AdaptiveDirectionalMutation
+        return AdaptiveDirectionalMutation(mu, mu_c, xi)
+
     raise ValueError(
         f"Nieznana strategia mutacji: '{mut_type}'. "
-        "Obsługiwane: isotropic, directional, weighted_shifts."
+        "Obsługiwane: isotropic, directional, weighted_shifts, adaptive_directional."
     )
 
 
@@ -139,8 +161,25 @@ def _run_from_json_config(config_path: str) -> SimulationStats:
     n = int(cfg["n"])
     alpha0 = np.zeros(n)
 
+    mut_cfg = cfg.get("mutation_strategy", {})
+    mut_params = mut_cfg.get("params", {}) if isinstance(mut_cfg, dict) else {}
+
+    weights_raw = _value_from_mapping(cfg, mut_params, "init_weights", default=None)
+    if weights_raw is None:
+        weights_raw = _value_from_mapping(cfg, mut_params, "weights", default=1.0)
+    lambdas_raw = _value_from_mapping(cfg, mut_params, "lambdas", default=0.5)
+    init_weights = _coerce_vector_param(weights_raw, n, "weights")
+    lambdas = _coerce_vector_param(lambdas_raw, n, "lambdas")
+
     env = build_environment_from_config(cfg, alpha_init=alpha0)
-    pop = Population(cfg["N"], n, cfg["init_scale"], alpha_init=alpha0)
+    pop = Population(
+        size=cfg["N"],
+        n_dim=n,
+        weights_init=init_weights,
+        init_scale=cfg["init_scale"],
+        alpha_init=alpha0,
+        lambdas_init=lambdas,
+    )
     selection = TwoStageSelection(cfg["sigma"], cfg["threshold"], cfg["N"])
     reproduction = AsexualReproduction()
     mutation = build_mutation_from_config(cfg)
@@ -325,6 +364,7 @@ def main():
         init_scale=config.init_scale,
         alpha_init=config.alpha0,  # populacja startuje blisko alpha0, nie wokół zera
         weights_init=config.init_weights,
+        lambdas_init=config.lambdas,
     )
     selection = TwoStageSelection(
         sigma=config.sigma,
