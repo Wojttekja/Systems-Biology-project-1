@@ -12,9 +12,10 @@ class Population:
         self, 
         size: int, 
         n_dim: int, 
+        weights_init: np.ndarray,
         init_scale: float = 0.1,
         alpha_init: None|np.ndarray = None,
-        weights_init: None|np.ndarray = None,
+        lambdas_init: None|np.ndarray = None,
         ):
         """
         Inicjalizuje populację losowymi fenotypami w n-wymiarach.
@@ -35,10 +36,13 @@ class Population:
 
         if weights_init is None:
             weights_init = np.ones(n_dim, dtype=float)
+
+        if lambdas_init is None:
+            lambdas_init = 0.5 * np.ones(n_dim, dtype=float)
         
         for _ in range(size):
             phenotype = np.random.normal(loc=center, scale=init_scale, size=n_dim)
-            self.individuals.append(Individual(phenotype, weights_init))
+            self.individuals.append(Individual(phenotype, weights_init, lambdas_init))
 
     def get_individuals(self) -> list[Individual]:
         return self.individuals

@@ -8,6 +8,7 @@ import numpy as np
 N = 100           # liczba osobników w populacji
 n = 4             # wymiar przestrzeni fenotypowej
 init_weights = np.ones(n) # Wagi dla mutacji kierunkowych
+lambdas = np.full(n, 0.5) # Udział komponentu kierunkowego mutacji na wymiar
 
 # Rozrzut początkowych fenotypów wokół optimum.
 # Zbyt duży → większość osobników ma fitness ≈ 0 i wymiera w pierwszym pokoleniu.

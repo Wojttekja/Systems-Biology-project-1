@@ -174,6 +174,7 @@ METRIC_LABELS = {
     "distance_from_optimum": ("Distance from optimum",   None),
     "phenotype_variance":    ("Phenotypic variance",      None),
     "weights_variance":      ("Weights variance",         None),
+    "lambdas_variance":      ("Lambdas variance",         None),
     "population_size":       ("Population size",          None),
     "n_parents":             ("Evolutionary winners (≥1 offspring)", None),
     "median_offspring":      ("Median offspring (among reproducing)", None),
@@ -182,20 +183,32 @@ METRIC_LABELS = {
 
 
 def _metric_sort_key(metric: str) -> tuple[int, int, str]:
-    """Sort built-in metrics first, then mean_weight_<dim> by dimension."""
+    """Sort built-ins first, then dynamic per-dimension metrics by dimension."""
     m = re.match(r"mean_weight_(\d+)$", metric)
     if m:
         return (1, int(m.group(1)), metric)
+    m = re.match(r"mean_lambda_(\d+)$", metric)
+    if m:
+        return (2, int(m.group(1)), metric)
+    m = re.match(r"lambda_variance_(\d+)$", metric)
+    if m:
+        return (3, int(m.group(1)), metric)
     return (0, 0, metric)
 
 
 def metric_label(metric: str) -> str:
-    """Human-readable metric label, including dynamic weight dimensions."""
+    """Human-readable metric label, including dynamic per-dimension metrics."""
     if metric in METRIC_LABELS:
         return METRIC_LABELS[metric][0]
     m = re.match(r"mean_weight_(\d+)$", metric)
     if m:
         return f"Mean weight (dim {m.group(1)})"
+    m = re.match(r"mean_lambda_(\d+)$", metric)
+    if m:
+        return f"Mean lambda (dim {m.group(1)})"
+    m = re.match(r"lambda_variance_(\d+)$", metric)
+    if m:
+        return f"Lambda variance (dim {m.group(1)})"
     return metric.replace("_", " ")
 
 
@@ -211,7 +224,12 @@ def available_summary_metrics(df: pd.DataFrame) -> list[str]:
         if not c.endswith("_mean"):
             continue
         base = c[:-5]
-        if base in METRIC_LABELS or re.match(r"mean_weight_\d+$", base):
+        if (
+            base in METRIC_LABELS
+            or re.match(r"mean_weight_\d+$", base)
+            or re.match(r"mean_lambda_\d+$", base)
+            or re.match(r"lambda_variance_\d+$", base)
+        ):
             metrics.append(base)
     return sorted(set(metrics), key=_metric_sort_key)
 
@@ -222,7 +240,12 @@ def available_replicate_metrics(rep_df: pd.DataFrame) -> list[str]:
     for c in rep_df.columns:
         if c in {"generation", "extinct"}:
             continue
-        if c in METRIC_LABELS or re.match(r"mean_weight_\d+$", c):
+        if (
+            c in METRIC_LABELS
+            or re.match(r"mean_weight_\d+$", c)
+            or re.match(r"mean_lambda_\d+$", c)
+            or re.match(r"lambda_variance_\d+$", c)
+        ):
             metrics.append(c)
     return sorted(set(metrics), key=_metric_sort_key)
 
@@ -239,6 +262,7 @@ PARAM_LABELS: dict[str, str] = {
     "delta":           "drift noise δ",
     "threshold":       "survival threshold",
     "init_scale":      "initial phenotype spread",
+    "lambdas":         "directional mixing λ",
     "max_generations": "max generations",
 }
 
@@ -572,12 +596,31 @@ elif page == "Single run":
             n      = cfg["n"]
             alpha0 = np.zeros(n)
             c_raw  = cfg.get("c", 0.01)
+            weights_raw = cfg.get("init_weights", cfg.get("weights", 1.0))
+            lambdas_raw = cfg.get("lambdas", 0.5)
             c_arr  = (
                 np.full(n, c_raw) if np.isscalar(c_raw)
                 else np.array(c_raw, dtype=float)
             )
+            weights = (
+                np.full(n, weights_raw, dtype=float)
+                if np.isscalar(weights_raw)
+                else np.array(weights_raw, dtype=float)
+            )
+            lambdas = (
+                np.full(n, lambdas_raw, dtype=float)
+                if np.isscalar(lambdas_raw)
+                else np.array(lambdas_raw, dtype=float)
+            )
 
-            pop = Population(cfg["N"], n, cfg["init_scale"], alpha_init=alpha0)
+            pop = Population(
+                size=cfg["N"],
+                n_dim=n,
+                weights_init=weights,
+                init_scale=cfg["init_scale"],
+                alpha_init=alpha0,
+                lambdas_init=lambdas,
+            )
             env = LinearShiftEnvironment(
                 alpha0.copy(), c_arr.copy(), cfg.get("delta", 0.01)
             )
