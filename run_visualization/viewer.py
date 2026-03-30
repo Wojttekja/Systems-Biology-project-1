@@ -173,11 +173,58 @@ METRIC_LABELS = {
     "mean_fitness":          ("Mean fitness φ",          (0, 1)),
     "distance_from_optimum": ("Distance from optimum",   None),
     "phenotype_variance":    ("Phenotypic variance",      None),
+    "weights_variance":      ("Weights variance",         None),
     "population_size":       ("Population size",          None),
     "n_parents":             ("Evolutionary winners (≥1 offspring)", None),
     "median_offspring":      ("Median offspring (among reproducing)", None),
     "max_offspring":         ("Max offspring",             None),
 }
+
+
+def _metric_sort_key(metric: str) -> tuple[int, int, str]:
+    """Sort built-in metrics first, then mean_weight_<dim> by dimension."""
+    m = re.match(r"mean_weight_(\d+)$", metric)
+    if m:
+        return (1, int(m.group(1)), metric)
+    return (0, 0, metric)
+
+
+def metric_label(metric: str) -> str:
+    """Human-readable metric label, including dynamic weight dimensions."""
+    if metric in METRIC_LABELS:
+        return METRIC_LABELS[metric][0]
+    m = re.match(r"mean_weight_(\d+)$", metric)
+    if m:
+        return f"Mean weight (dim {m.group(1)})"
+    return metric.replace("_", " ")
+
+
+def metric_ylim(metric: str):
+    """Optional y-axis limits for known metrics."""
+    return METRIC_LABELS.get(metric, (metric, None))[1]
+
+
+def available_summary_metrics(df: pd.DataFrame) -> list[str]:
+    """Return metric base names available in summary.csv (<metric>_mean columns)."""
+    metrics: list[str] = []
+    for c in df.columns:
+        if not c.endswith("_mean"):
+            continue
+        base = c[:-5]
+        if base in METRIC_LABELS or re.match(r"mean_weight_\d+$", base):
+            metrics.append(base)
+    return sorted(set(metrics), key=_metric_sort_key)
+
+
+def available_replicate_metrics(rep_df: pd.DataFrame) -> list[str]:
+    """Return plottable metric columns available in replicate_XX.csv."""
+    metrics: list[str] = []
+    for c in rep_df.columns:
+        if c in {"generation", "extinct"}:
+            continue
+        if c in METRIC_LABELS or re.match(r"mean_weight_\d+$", c):
+            metrics.append(c)
+    return sorted(set(metrics), key=_metric_sort_key)
 
 COLORS = {"A": "#2196F3", "B": "#E91E63"}   # blue / pink
 
@@ -412,13 +459,13 @@ elif page == "Single run":
     st.markdown("---")
     st.subheader("Summary statistics (mean ± std across replicates)")
 
-    metrics_available = [m for m in METRIC_LABELS if f"{m}_mean" in summary.columns]
+    metrics_available = available_summary_metrics(summary)
     chosen = st.multiselect(
         "Metrics to show",
         options=metrics_available,
         default=[m for m in ["mean_fitness", "distance_from_optimum",
                               "phenotype_variance", "n_parents"] if m in metrics_available],
-        format_func=lambda m: METRIC_LABELS[m][0],
+        format_func=metric_label,
     )
 
     if chosen:
@@ -430,9 +477,9 @@ elif page == "Single run":
         for i, metric in enumerate(chosen):
             ax = axes[i // n_cols][i % n_cols]
             ts_plot(ax, summary, metric, run["name"], COLORS["A"])
-            label, ylim = METRIC_LABELS[metric]
-            ax.set_title(label, fontsize=10)
+            ax.set_title(metric_label(metric), fontsize=10)
             ax.set_xlabel("Generation")
+            ylim = metric_ylim(metric)
             if ylim:
                 ax.set_ylim(*ylim)
         for j in range(len(chosen), n_rows * n_cols):
@@ -447,8 +494,8 @@ elif page == "Single run":
     show_reps = st.checkbox("Show individual replicate curves", value=False)
     rep_metric = st.selectbox(
         "Metric",
-        options=[m for m in METRIC_LABELS if m in (rep_csvs[0].columns if rep_csvs else [])],
-        format_func=lambda m: METRIC_LABELS[m][0],
+        options=available_replicate_metrics(rep_csvs[0]) if rep_csvs else [],
+        format_func=metric_label,
     ) if rep_csvs else None
 
     if show_reps and rep_csvs and rep_metric:
@@ -463,10 +510,10 @@ elif page == "Single run":
         if f"{rep_metric}_mean" in summary.columns:
             ax.plot(summary["generation"], summary[f"{rep_metric}_mean"],
                     color="black", lw=2, label="mean")
-        ax.set_title(METRIC_LABELS[rep_metric][0])
+        ax.set_title(metric_label(rep_metric))
         ax.set_xlabel("Generation")
         ax.legend()
-        ylim = METRIC_LABELS[rep_metric][1]
+        ylim = metric_ylim(rep_metric)
         if ylim:
             ax.set_ylim(*ylim)
         st.pyplot(fig)
@@ -621,16 +668,16 @@ elif page == "Compare two runs":
     # ── Time-series comparison ────────────────────────────────────────────────
     st.subheader("Time-series comparison (mean ± std across replicates)")
 
-    metrics_available = [
-        m for m in METRIC_LABELS
-        if f"{m}_mean" in sum_a.columns or f"{m}_mean" in sum_b.columns
-    ]
+    metrics_available = sorted(
+        set(available_summary_metrics(sum_a)) | set(available_summary_metrics(sum_b)),
+        key=_metric_sort_key,
+    )
     chosen = st.multiselect(
         "Metrics to plot",
         options=metrics_available,
         default=[m for m in ["mean_fitness", "distance_from_optimum",
                               "phenotype_variance", "n_parents"] if m in metrics_available],
-        format_func=lambda m: METRIC_LABELS[m][0],
+        format_func=metric_label,
     )
 
     if chosen:
@@ -643,9 +690,9 @@ elif page == "Compare two runs":
             ax = axes[i // n_cols][i % n_cols]
             ts_plot(ax, sum_a, metric, run_a["name"], COLORS["A"])
             ts_plot(ax, sum_b, metric, run_b["name"], COLORS["B"])
-            label, ylim = METRIC_LABELS[metric]
-            ax.set_title(label, fontsize=10)
+            ax.set_title(metric_label(metric), fontsize=10)
             ax.set_xlabel("Generation")
+            ylim = metric_ylim(metric)
             if ylim:
                 ax.set_ylim(*ylim)
             patch_a = mpatches.Patch(color=COLORS["A"], label=f'A — {run_a["name"]}')
@@ -703,7 +750,10 @@ elif page == "Compare two runs":
     # ── Final-generation snapshot ────────────────────────────────────────────
     st.subheader("Final generation snapshot")
 
-    snap_metrics = [m for m in METRIC_LABELS if f"{m}_mean" in sum_a.columns]
+    snap_metrics = sorted(
+        set(available_summary_metrics(sum_a)) | set(available_summary_metrics(sum_b)),
+        key=_metric_sort_key,
+    )
     rows = []
     for m in snap_metrics:
         va_m = sum_a[f"{m}_mean"].iloc[-1]
@@ -711,7 +761,7 @@ elif page == "Compare two runs":
         vb_m = sum_b[f"{m}_mean"].iloc[-1]
         vb_s = sum_b[f"{m}_std"].iloc[-1]  if f"{m}_std"  in sum_b.columns else float("nan")
         rows.append({
-            "Metric": METRIC_LABELS[m][0],
+            "Metric": metric_label(m),
             f"A — {run_a['name']}  (mean ± std)": f"{va_m:.4f} ± {va_s:.4f}",
             f"B — {run_b['name']}  (mean ± std)": f"{vb_m:.4f} ± {vb_s:.4f}",
         })
@@ -810,10 +860,14 @@ elif page == "Parameter sweep":
     # Shared data pre-computed before tabs
     summaries      = {r["label"]: load_summary(r["dir"]) for r in sorted_runs}
     global_max_gen = max(int(summaries[r["label"]]["generation"].max()) for r in sorted_runs)
-    metrics_available = [
-        m for m in METRIC_LABELS
-        if any(f"{m}_mean" in summaries[r["label"]].columns for r in sorted_runs)
-    ]
+    metrics_available = sorted(
+        {
+            m
+            for r in sorted_runs
+            for m in available_summary_metrics(summaries[r["label"]])
+        },
+        key=_metric_sort_key,
+    )
 
     # ── Tabs ─────────────────────────────────────────────────────────────────
     tab0, tab1, tab2, tab3, tab4 = st.tabs([
@@ -949,7 +1003,7 @@ elif page == "Parameter sweep":
         h_metric = st.selectbox(
             "Metric",
             metrics_available,
-            format_func=lambda m: METRIC_LABELS[m][0],
+            format_func=metric_label,
             key="hmap_metric",
         )
         run_dir_strs = tuple(str(r["dir"]) for r in sorted_runs)
@@ -961,7 +1015,7 @@ elif page == "Parameter sweep":
         used_cmap = plt.get_cmap(hmap_cmap_name).copy()
         used_cmap.set_bad(color="#cccccc")
         im = ax.imshow(masked, aspect="auto", interpolation="nearest", cmap=used_cmap)
-        plt.colorbar(im, ax=ax, label=METRIC_LABELS[h_metric][0], fraction=0.03, pad=0.02)
+        plt.colorbar(im, ax=ax, label=metric_label(h_metric), fraction=0.03, pad=0.02)
         n_xticks  = min(10, len(gens))
         xtick_idx = np.linspace(0, len(gens) - 1, n_xticks, dtype=int)
         ax.set_xticks(xtick_idx)
@@ -973,7 +1027,7 @@ elif page == "Parameter sweep":
             fontsize=9,
         )
         ax.set_title(
-            f"{METRIC_LABELS[h_metric][0]} — sweep over {param_label}",
+            f"{metric_label(h_metric)} — sweep over {param_label}",
             fontsize=12,
         )
         plt.tight_layout()
@@ -990,7 +1044,7 @@ elif page == "Parameter sweep":
         d_metric = st.selectbox(
             "Metric",
             metrics_available,
-            format_func=lambda m: METRIC_LABELS[m][0],
+            format_func=metric_label,
             key="dose_metric",
         )
         gen_choice = st.slider(
@@ -1033,11 +1087,11 @@ elif page == "Parameter sweep":
                 ax_dose.scatter([xv], [yv], color=col, s=110, zorder=3,
                                 edgecolors="k", linewidths=0.8)
         ax_dose.set_xlabel(f"{param_choice}  ({param_label})", fontsize=11)
-        ax_dose.set_ylabel(METRIC_LABELS[d_metric][0], fontsize=11)
+        ax_dose.set_ylabel(metric_label(d_metric), fontsize=11)
         ax_dose.set_title(
-            f"{METRIC_LABELS[d_metric][0]} at generation {gen_choice}", fontsize=11
+            f"{metric_label(d_metric)} at generation {gen_choice}", fontsize=11
         )
-        ylim = METRIC_LABELS[d_metric][1]
+        ylim = metric_ylim(d_metric)
         if ylim:
             ax_dose.set_ylim(*ylim)
         ax_dose.grid(True, alpha=0.3)
@@ -1070,7 +1124,7 @@ elif page == "Parameter sweep":
             default=[m for m in ["mean_fitness", "distance_from_optimum",
                                   "phenotype_variance", "population_size"]
                      if m in metrics_available],
-            format_func=lambda m: METRIC_LABELS[m][0],
+            format_func=metric_label,
             key="traj_metrics",
         )
         if traj_metrics:
@@ -1096,9 +1150,9 @@ elif page == "Parameter sweep":
                             label=f"{param_choice}={val}")
                     ax.fill_between(gns, mean - std, mean + std,
                                     color=col, alpha=0.12)
-                label_str, ylim = METRIC_LABELS[metric]
-                ax.set_title(label_str, fontsize=10)
+                ax.set_title(metric_label(metric), fontsize=10)
                 ax.set_xlabel("Generation")
+                ylim = metric_ylim(metric)
                 if ylim:
                     ax.set_ylim(*ylim)
             for j in range(n_m, n_mr * n_mc):

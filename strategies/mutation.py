@@ -102,7 +102,6 @@ class DirectionalMutation(UnifiedMutations):
         """
         directional_component = self.calculate_directional_component()
         for ind in population.get_individuals():
-            print(directional_component)
             self._mutate_individual(ind, directional_component)
 
     def update_alpha(self, new_alpha: np.ndarray) -> None:
@@ -121,6 +120,8 @@ class DirectionalMutation(UnifiedMutations):
 
         # for the first mutation, we don't have any previous shifts recorded
         if no_shifts == 0:
+            if self.previous_alpha is None:
+                return np.array(0.0)
             return np.zeros_like(self.previous_alpha)
 
         recent_shifts = list(self.env_shifts)[-no_shifts:]
@@ -134,6 +135,8 @@ class DirectionalMutation(UnifiedMutations):
         """
         if np.random.rand() < self.mu:
             old_phenotype = individual.get_phenotype().copy()
+            if directional_component.shape == ():
+                directional_component = np.zeros_like(old_phenotype)
             mask = np.random.random(old_phenotype.size) < self.mu_c
             isotropic_component = np.where(
                 mask, np.random.normal(loc=0.0, scale=self.xi, size=old_phenotype.size), np.zeros_like(old_phenotype)

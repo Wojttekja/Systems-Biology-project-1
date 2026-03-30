@@ -70,26 +70,24 @@ def _run_replicate(args: tuple) -> tuple:
 
     import numpy as np
     from run_elements.population import Population
-    from strategies.environment import LinearShiftEnvironment
     from strategies.selection import TwoStageSelection
     from strategies.reproduction import AsexualReproduction
-    from strategies.mutation import IsotropicMutation
-    from main import run_simulation
+    from main import (
+        run_simulation,
+        build_environment_from_config,
+        build_mutation_from_config,
+    )
 
     np.random.seed(seed)
 
     n = cfg["n"]
     alpha0 = np.zeros(n)
 
-    # 'c' can be a scalar (same drift in every dimension) or a list
-    c_raw = cfg.get("c", 0.01)
-    c = np.full(n, c_raw) if np.isscalar(c_raw) else np.array(c_raw, dtype=float)
-
     pop = Population(cfg["N"], n, cfg["init_scale"], alpha_init=alpha0)
-    env = LinearShiftEnvironment(alpha0.copy(), c.copy(), cfg.get("delta", 0.01))
+    env = build_environment_from_config(cfg, alpha_init=alpha0)
     sel = TwoStageSelection(cfg["sigma"], cfg["threshold"], cfg["N"])
     rep = AsexualReproduction()
-    mut = IsotropicMutation(cfg["mu"], cfg["mu_c"], cfg["xi"])
+    mut = build_mutation_from_config(cfg)
 
     stats = run_simulation(
         pop,
@@ -135,12 +133,18 @@ def _stats_to_rows(stats) -> list:
             "mean_fitness": r.mean_fitness,
             "distance_from_optimum": r.distance_from_optimum,
             "phenotype_variance": r.phenotype_variance,
+            "weights_variance": r.weights_variance,
             "population_size": r.population_size,
             "n_parents": r.n_parents,
             "median_offspring": r.median_offspring,
             "max_offspring": r.max_offspring,
             "extinct": 0,
         }
+
+        # Save mean weights per dimension as separate columns.
+        for dim, val in enumerate(r.mean_weights):
+            row[f"mean_weight_{dim}"] = float(val)
+
         # Include any student-defined extra metrics as extra_<key> columns
         for k, v in r.extra.items():
             row[f"extra_{k}"] = v
@@ -176,15 +180,21 @@ def _write_summary(all_stats: list, out_dir: Path) -> None:
     extinct_count is the number of replicates that went extinct at or before
     this generation — useful for survival-curve plots.
     """
-    metrics = [
+    scalar_metrics = [
         "mean_fitness",
         "distance_from_optimum",
         "phenotype_variance",
+        "weights_variance",
         "population_size",
         "n_parents",
         "median_offspring",
         "max_offspring",
     ]
+
+    max_weight_dims = max(
+        (len(r.mean_weights) for s in all_stats for r in s.records),
+        default=0,
+    )
 
     max_gen = max(
         (r.generation for s in all_stats for r in s.records),
@@ -194,7 +204,8 @@ def _write_summary(all_stats: list, out_dir: Path) -> None:
     rows = []
     for g in range(max_gen + 1):
         row = {"generation": g}
-        values = {m: [] for m in metrics}
+        values = {m: [] for m in scalar_metrics}
+        weight_dim_values = [[] for _ in range(max_weight_dims)]
         extinct_count = 0
 
         for s in all_stats:
@@ -203,13 +214,23 @@ def _write_summary(all_stats: list, out_dir: Path) -> None:
                 continue
             rec = next((r for r in s.records if r.generation == g), None)
             if rec is not None:
-                for m in metrics:
+                for m in scalar_metrics:
                     values[m].append(getattr(rec, m))
+                for dim in range(min(max_weight_dims, len(rec.mean_weights))):
+                    weight_dim_values[dim].append(float(rec.mean_weights[dim]))
 
-        for m in metrics:
+        for m in scalar_metrics:
             vals = values[m]
             row[f"{m}_mean"] = float(np.mean(vals)) if vals else float("nan")
             row[f"{m}_std"] = float(np.std(vals)) if vals else float("nan")
+
+        for dim, vals in enumerate(weight_dim_values):
+            row[f"mean_weight_{dim}_mean"] = (
+                float(np.mean(vals)) if vals else float("nan")
+            )
+            row[f"mean_weight_{dim}_std"] = (
+                float(np.std(vals)) if vals else float("nan")
+            )
 
         row["extinct_count"] = extinct_count
         rows.append(row)
@@ -244,10 +265,6 @@ def run_one(config_path: Path | str, n_workers: int | None = None) -> Path:
         "n",
         "N",
         "sigma",
-        "xi",
-        "mu",
-        "mu_c",
-        "c",
         "threshold",
         "init_scale",
         "max_generations",
@@ -257,6 +274,35 @@ def run_one(config_path: Path | str, n_workers: int | None = None) -> Path:
     missing = [k for k in required if k not in cfg]
     if missing:
         sys.exit(f"Error: config is missing required keys: {missing}")
+
+    # Validate environment + mutation blocks (new format) and backwards-compatible
+    # flat keys.
+    env_cfg = cfg.get("environment", {})
+    env_params = env_cfg.get("params", {}) if isinstance(env_cfg, dict) else {}
+    if "c" not in env_params and "c" not in cfg:
+        sys.exit(
+            "Error: missing environment drift parameter 'c' "
+            "(either root key 'c' or environment.params.c)."
+        )
+
+    mut_cfg = cfg.get("mutation_strategy", {})
+    mut_type = mut_cfg.get("type", "isotropic") if isinstance(mut_cfg, dict) else "isotropic"
+    mut_params = mut_cfg.get("params", {}) if isinstance(mut_cfg, dict) else {}
+
+    for key in ("mu", "mu_c", "xi"):
+        if key not in mut_params and key not in cfg:
+            sys.exit(
+                f"Error: missing mutation parameter '{key}' "
+                "(either root key or mutation_strategy.params.<key>)."
+            )
+
+    if mut_type in {"directional", "weighted_shifts"}:
+        for key in ("k", "b"):
+            if key not in mut_params and key not in cfg:
+                sys.exit(
+                    f"Error: mutation strategy '{mut_type}' requires parameter '{key}' "
+                    "(either root key or mutation_strategy.params.<key>)."
+                )
 
     n_replicates = cfg["n_replicates"]
     seeds = cfg["seeds"]

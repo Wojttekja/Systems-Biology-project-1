@@ -198,9 +198,22 @@ def main() -> None:
             n_r = meta.get("n_replicates", "?")
             name = meta.get("name", cfg_path.stem)
             desc = meta.get("description", "")
+            env_meta = meta.get("environment", {})
+            env_type = (
+                env_meta.get("type", "linear_shift")
+                if isinstance(env_meta, dict)
+                else "linear_shift"
+            )
+            mut_meta = meta.get("mutation_strategy", {})
+            mut_type = (
+                mut_meta.get("type", "isotropic")
+                if isinstance(mut_meta, dict)
+                else "isotropic"
+            )
         except Exception:
             n_r, name, desc = "?", cfg_path.stem, "(could not parse)"
-        rows.append((cfg_path, name, n_r, desc))
+            env_type, mut_type = "?", "?"
+        rows.append((cfg_path, name, n_r, desc, env_type, mut_type))
         if isinstance(n_r, int):
             total_reps += n_r
 
@@ -208,9 +221,12 @@ def main() -> None:
     print(f"  Configs to run : {len(configs)}")
     print(f"  Total replicates: {total_reps}")
     print(f"{'─' * 62}")
-    for i, (cfg_path, name, n_r, desc) in enumerate(rows, 1):
+    for i, (cfg_path, name, n_r, desc, env_type, mut_type) in enumerate(rows, 1):
         desc_str = f"  {desc}" if desc else ""
-        print(f"  {i:2d}. {name:<30s}  ({n_r} reps)  {cfg_path}{desc_str}")
+        print(
+            f"  {i:2d}. {name:<30s}  ({n_r} reps)  [{env_type} | {mut_type}]  "
+            f"{cfg_path}{desc_str}"
+        )
     print(f"{'─' * 62}\n")
 
     if args.dry_run:
@@ -236,7 +252,7 @@ def main() -> None:
     succeeded: list[Path] = []
     failed: list[tuple[Path, str]] = []
 
-    for i, (cfg_path, name, n_r, _) in enumerate(rows, 1):
+    for i, (cfg_path, name, n_r, _, _, _) in enumerate(rows, 1):
         print(f"\n{'═' * 62}")
         print(f"  [{i}/{len(configs)}]  {name}")
         print(f"{'═' * 62}")

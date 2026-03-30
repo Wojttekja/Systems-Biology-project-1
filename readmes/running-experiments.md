@@ -148,6 +148,90 @@ Key rules:
   charts and populate the "Filter by group" selector on the Parameter sweep
   page.
 
+### Choosing environment and mutation strategy in JSON
+
+You can now select strategy implementations directly in the experiment config
+using nested blocks:
+
+- `environment.type` and `environment.params`
+- `mutation_strategy.type` and `mutation_strategy.params`
+
+Currently supported values:
+
+- Environment: `linear_shift`
+- Mutation: `isotropic`, `directional`, `weighted_shifts`
+
+Example with isotropic mutation:
+
+```json
+{
+  "name": "example_isotropic",
+  "n": 4,
+  "N": 100,
+  "sigma": 0.2,
+  "threshold": 0.01,
+  "init_scale": 0.1,
+  "max_generations": 200,
+  "n_replicates": 10,
+  "seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+
+  "environment": {
+    "type": "linear_shift",
+    "params": {
+      "c": 0.01,
+      "delta": 0.01
+    }
+  },
+
+  "mutation_strategy": {
+    "type": "isotropic",
+    "params": {
+      "mu": 0.1,
+      "mu_c": 0.5,
+      "xi": 0.05
+    }
+  }
+}
+```
+
+Example with directional mutation:
+
+```json
+{
+  "name": "example_directional",
+  "n": 4,
+  "N": 100,
+  "sigma": 0.2,
+  "threshold": 0.01,
+  "init_scale": 0.1,
+  "max_generations": 200,
+  "n_replicates": 10,
+  "seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+
+  "environment": {
+    "type": "linear_shift",
+    "params": {
+      "c": 0.015,
+      "delta": 0.01
+    }
+  },
+
+  "mutation_strategy": {
+    "type": "directional",
+    "params": {
+      "mu": 0.1,
+      "mu_c": 0.5,
+      "xi": 0.05,
+      "k": 10,
+      "b": 0.3
+    }
+  }
+}
+```
+
+Backward compatibility: legacy flat keys are still accepted (`c`, `delta`,
+`mu`, `mu_c`, `xi`, and for directional/weighted also `k`, `b`).
+
 ### Organising configs in subfolders
 
 `experiments/` can have arbitrary subfolders:
