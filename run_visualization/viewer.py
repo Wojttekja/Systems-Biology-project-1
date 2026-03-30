@@ -18,6 +18,7 @@ import json
 import os
 import pickle
 import re
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -36,6 +37,12 @@ st.set_page_config(
 )
 
 RESULTS_DIR = Path("results")
+
+# Ensure project-root imports work when launched as:
+#   streamlit run run_visualization/viewer.py
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -586,22 +593,25 @@ elif page == "Single run":
     if generate_btn:
         with st.spinner("Running simulation and rendering frames…"):
             from run_elements.population   import Population
-            from strategies.environment  import LinearShiftEnvironment
             from strategies.selection    import TwoStageSelection
             from strategies.reproduction import AsexualReproduction
-            from strategies.mutation     import IsotropicMutation
-            from main         import run_simulation, create_gif_from_frames
+            from main import (
+                run_simulation,
+                create_gif_from_frames,
+                build_environment_from_config,
+                build_mutation_from_config,
+            )
 
             np.random.seed(chosen_seed)
             n      = cfg["n"]
             alpha0 = np.zeros(n)
-            c_raw  = cfg.get("c", 0.01)
-            weights_raw = cfg.get("init_weights", cfg.get("weights", 1.0))
-            lambdas_raw = cfg.get("lambdas", 0.5)
-            c_arr  = (
-                np.full(n, c_raw) if np.isscalar(c_raw)
-                else np.array(c_raw, dtype=float)
+            mut_cfg = cfg.get("mutation_strategy", {})
+            mut_params = mut_cfg.get("params", {}) if isinstance(mut_cfg, dict) else {}
+            weights_raw = mut_params.get(
+                "init_weights",
+                cfg.get("init_weights", cfg.get("weights", 1.0)),
             )
+            lambdas_raw = mut_params.get("lambdas", cfg.get("lambdas", 0.5))
             weights = (
                 np.full(n, weights_raw, dtype=float)
                 if np.isscalar(weights_raw)
@@ -621,12 +631,10 @@ elif page == "Single run":
                 alpha_init=alpha0,
                 lambdas_init=lambdas,
             )
-            env = LinearShiftEnvironment(
-                alpha0.copy(), c_arr.copy(), cfg.get("delta", 0.01)
-            )
+            env = build_environment_from_config(cfg, alpha0)
             sel = TwoStageSelection(cfg["sigma"], cfg["threshold"], cfg["N"])
             rep = AsexualReproduction()
-            mut = IsotropicMutation(cfg["mu"], cfg["mu_c"], cfg["xi"])
+            mut = build_mutation_from_config(cfg)
 
             frames_tmp = str(run["dir"] / f"gif_frames_seed{chosen_seed}")
             run_simulation(

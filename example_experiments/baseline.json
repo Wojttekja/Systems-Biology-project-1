@@ -1,18 +1,29 @@
 {
   "name": "baseline",
   "description": "Standard FGM: asexual reproduction, linear drift at default speed (c=0.01). Use this as the reference condition in all comparisons.",
+  "group": "Baseline conditions",
   "n": 4,
   "N": 100,
   "sigma": 0.2,
-  "xi": 0.05,
-  "mu": 0.1,
-  "mu_c": 0.5,
-  "c": 0.01,
-  "delta": 0.01,
   "threshold": 0.01,
   "init_scale": 0.1,
   "max_generations": 200,
   "n_replicates": 20,
+  "environment": {
+    "type": "linear_shift",
+    "params": {
+      "c": 0.01,
+      "delta": 0.01
+    }
+  },
+  "mutation_strategy": {
+    "type": "isotropic",
+    "params": {
+      "mu": 0.1,
+      "mu_c": 0.5,
+      "xi": 0.05
+    }
+  },
   "seeds": [
     0,
     1,
@@ -34,6 +45,5 @@
     17,
     18,
     19
-  ],
-  "group": "Baseline conditions"
+  ]
 }

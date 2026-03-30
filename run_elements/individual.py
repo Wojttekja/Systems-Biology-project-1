@@ -8,13 +8,13 @@ class Individual:
     Przechowuje wektor fenotypu w n-wymiarowej przestrzeni.
     """
     def __init__(self, phenotype: np.ndarray, weights: np.ndarray, lambdas: np.ndarray):
-        self.phenotype: np.ndarray = phenotype
+        self.phenotype: np.ndarray = np.array(phenotype, dtype=float, copy=True)
 
         # weights for directional mutations based on multiple previous environmental shifts
-        self.weights: np.ndarray = weights
+        self.weights: np.ndarray = np.array(weights, dtype=float, copy=True)
 
-        # weights for directional mutations based on multiple previous environmental shifts
-        self.lambdas: np.ndarray = lambdas
+        # adaptive blend coefficients between isotropic and directional components
+        self.lambdas: np.ndarray = np.array(lambdas, dtype=float, copy=True)
 
     def get_phenotype(self) -> np.ndarray:
         return self.phenotype

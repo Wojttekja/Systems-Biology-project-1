@@ -303,7 +303,7 @@ class AdaptiveDirectionalMutation(UnifiedMutations):
             # mutate lambdas
             old_lambdas = individual.lambdas.copy()
             
-            new_lambdas = 0.5 * old_lambdas + 0.5 * np.random.uniform(0, 1, size=old_lambdas.size)
+            new_lambdas = old_lambdas + np.random.normal(0, 1, size=old_lambdas.size)
             individual.lambdas = new_lambdas
 
 # ---------------------------------------------------------------------------
