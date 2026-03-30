@@ -1,20 +1,20 @@
 {
-  "name": "example_adaptive_directional",
+  "name": "working shift calculation clipped increased 0.25 tempo lambda adaptive_directional",
   "description": "Example using AdaptiveDirectionalMutation: individuals use per-dimension lambdas to adaptively blend isotropic and directional drift.",
   "group": "Examples",
   "n": 4,
-  "N": 100,
-  "sigma": 0.2,
-  "threshold": 0.01,
-  "init_scale": 0.1,
-  "max_generations": 150,
-  "n_replicates": 5,
-  "seeds": [50, 51, 52, 53, 54],
+  "N": 2000,
+  "sigma": 1,
+  "threshold": 0.5,
+  "init_scale": 0.001,
+  "max_generations": 200,
+  "n_replicates": 20,
+  "seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
 
   "environment": {
     "type": "linear_shift",
     "params": {
-      "c": 0.012,
+      "c": [0.25, 0, 0, 0],
       "delta": 0.01
     }
   },
@@ -22,12 +22,9 @@
   "mutation_strategy": {
     "type": "adaptive_directional",
     "params": {
-      "mu": 0.1,
-      "mu_c": 0.5,
-      "xi": 0.05
+      "mu": 1,
+      "mu_c": 1,
+      "xi": 0.1
     }
-  },
-
-  "init_weights": 1.0,
-  "lambdas": 0.5
+  }
 }

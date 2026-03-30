@@ -261,7 +261,8 @@ class AdaptiveDirectionalMutation(UnifiedMutations):
         :param new_alpha: new optimal phenotype
         """
         if self.previous_alpha is not None:
-            self.env_shifts = (new_alpha - self.previous_alpha)
+            self.env_shift = self.previous_alpha - new_alpha
+            # print(self.env_shift, self.previous_alpha)
         self.previous_alpha = new_alpha
 
     def calculate_directional_component(self) -> np.ndarray:
@@ -303,7 +304,8 @@ class AdaptiveDirectionalMutation(UnifiedMutations):
             # mutate lambdas
             old_lambdas = individual.lambdas.copy()
             
-            new_lambdas = old_lambdas + np.random.normal(0, 1, size=old_lambdas.size)
+            new_lambdas = np.clip(old_lambdas + np.random.normal(0, 0.1, size=old_lambdas.size), -np.zeros_like(old_lambdas), np.ones_like(old_lambdas))
+            # new_lambdas = 0.5 * old_lambdas + 0.5 * np.clip(np.random.normal(0, 1, size=old_lambdas.size), -1*np.ones_like(old_lambdas), np.ones_like(old_lambdas))
             individual.lambdas = new_lambdas
 
 # ---------------------------------------------------------------------------

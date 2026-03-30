@@ -1,0 +1,7 @@
+{
+  "timestamp": "2026-03-30T19:30:15",
+  "git_commit": "ccfe06b",
+  "python_version": "3.14.3",
+  "platform": "Linux-6.19.8-arch1-1-x86_64-with-glibc2.43",
+  "config_file": "experiments/adaptive_linear.json"
+}

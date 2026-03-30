@@ -168,6 +168,12 @@ def _run_from_json_config(config_path: str) -> SimulationStats:
     if weights_raw is None:
         weights_raw = _value_from_mapping(cfg, mut_params, "weights", default=1.0)
     lambdas_raw = _value_from_mapping(cfg, mut_params, "lambdas", default=0.5)
+    lambda_init_scale = _value_from_mapping(
+        cfg,
+        mut_params,
+        "lambda_init_scale",
+        default=None,
+    )
     init_weights = _coerce_vector_param(weights_raw, n, "weights")
     lambdas = _coerce_vector_param(lambdas_raw, n, "lambdas")
 
@@ -179,6 +185,7 @@ def _run_from_json_config(config_path: str) -> SimulationStats:
         init_scale=cfg["init_scale"],
         alpha_init=alpha0,
         lambdas_init=lambdas,
+        lambda_init_scale=lambda_init_scale,
     )
     selection = TwoStageSelection(cfg["sigma"], cfg["threshold"], cfg["N"])
     reproduction = AsexualReproduction()
@@ -365,6 +372,7 @@ def main():
         alpha_init=config.alpha0,  # populacja startuje blisko alpha0, nie wokół zera
         weights_init=config.init_weights,
         lambdas_init=config.lambdas,
+        lambda_init_scale=getattr(config, "lambda_init_scale", None),
     )
     selection = TwoStageSelection(
         sigma=config.sigma,

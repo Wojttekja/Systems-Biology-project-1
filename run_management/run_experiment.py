@@ -100,6 +100,10 @@ def _run_replicate(args: tuple) -> tuple:
         cfg.get("init_weights", mut_params.get("weights", cfg.get("weights", 1.0))),
     )
     lambdas_raw = mut_params.get("lambdas", cfg.get("lambdas", 0.5))
+    lambda_init_scale = mut_params.get(
+        "lambda_init_scale",
+        cfg.get("lambda_init_scale", None),
+    )
 
     init_weights = (
         np.full(weights_dim, weights_raw, dtype=float)
@@ -127,6 +131,7 @@ def _run_replicate(args: tuple) -> tuple:
         init_scale=cfg["init_scale"],
         alpha_init=alpha0,
         lambdas_init=lambdas,
+        lambda_init_scale=lambda_init_scale,
     )
     env = build_environment_from_config(cfg, alpha_init=alpha0)
     sel = TwoStageSelection(cfg["sigma"], cfg["threshold"], cfg["N"])
@@ -189,6 +194,11 @@ def _stats_to_rows(stats) -> list:
         for dim, val in enumerate(r.mean_weights):
             row[f"mean_weight_{dim}"] = float(val)
 
+        # Save environment (optimum) position per dimension.
+        if hasattr(r, "alpha"):
+            for dim, val in enumerate(r.alpha):
+                row[f"alpha_{dim}"] = float(val)
+
         # Save mean lambdas and lambda variance per dimension.
         for dim, val in enumerate(r.mean_lambdas):
             row[f"mean_lambda_{dim}"] = float(val)
@@ -250,6 +260,10 @@ def _write_summary(all_stats: list, out_dir: Path) -> None:
         (len(r.mean_lambdas) for s in all_stats for r in s.records),
         default=0,
     )
+    max_alpha_dims = max(
+        (len(r.alpha) for s in all_stats for r in s.records if hasattr(r, "alpha")),
+        default=0,
+    )
 
     max_gen = max(
         (r.generation for s in all_stats for r in s.records),
@@ -263,6 +277,7 @@ def _write_summary(all_stats: list, out_dir: Path) -> None:
         weight_dim_values = [[] for _ in range(max_weight_dims)]
         lambda_mean_dim_values = [[] for _ in range(max_lambda_dims)]
         lambda_var_dim_values = [[] for _ in range(max_lambda_dims)]
+        alpha_dim_values = [[] for _ in range(max_alpha_dims)]
         extinct_count = 0
 
         for s in all_stats:
@@ -275,6 +290,9 @@ def _write_summary(all_stats: list, out_dir: Path) -> None:
                     values[m].append(getattr(rec, m))
                 for dim in range(min(max_weight_dims, len(rec.mean_weights))):
                     weight_dim_values[dim].append(float(rec.mean_weights[dim]))
+                if hasattr(rec, "alpha"):
+                    for dim in range(min(max_alpha_dims, len(rec.alpha))):
+                        alpha_dim_values[dim].append(float(rec.alpha[dim]))
                 for dim in range(min(max_lambda_dims, len(rec.mean_lambdas))):
                     lambda_mean_dim_values[dim].append(float(rec.mean_lambdas[dim]))
                 for dim in range(min(max_lambda_dims, len(rec.lambda_variance_by_dim))):
@@ -294,6 +312,10 @@ def _write_summary(all_stats: list, out_dir: Path) -> None:
             row[f"mean_weight_{dim}_std"] = (
                 float(np.std(vals)) if vals else float("nan")
             )
+
+        for dim, vals in enumerate(alpha_dim_values):
+            row[f"alpha_{dim}_mean"] = float(np.mean(vals)) if vals else float("nan")
+            row[f"alpha_{dim}_std"] = float(np.std(vals)) if vals else float("nan")
 
         for dim, vals in enumerate(lambda_mean_dim_values):
             row[f"mean_lambda_{dim}_mean"] = (

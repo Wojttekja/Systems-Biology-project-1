@@ -21,6 +21,7 @@ import numpy as np
 class GenerationRecord:
     """Snapshot statystyk populacji z jednego pokolenia."""
     generation: int
+    alpha: np.ndarray
     mean_fitness: float
     mean_phenotype: np.ndarray
     mean_weights: np.ndarray
@@ -109,6 +110,7 @@ class SimulationStats:
 
         self.records.append(GenerationRecord(
             generation=generation,
+            alpha=alpha.copy(),
             mean_fitness=mean_fitness,
             mean_phenotype=mean_phenotype,
             mean_weights=mean_weights,
